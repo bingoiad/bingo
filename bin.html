@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bin Status - BinGo</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --danger: #ef233c;
+            --warning: #f4a261;
+            --success: #2ec4b6;
+            --dark: #2b2d42;
+            --light: #f8f9fa;
+            --gray: #adb5bd;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bin-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .bin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+        
+        .bin-title {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .bin-title i {
+            font-size: 1.5rem;
+        }
+        
+        .info-row {
+            display: flex;
+            margin: 1.25rem 0;
+            align-items: center;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: var(--gray);
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .info-value {
+            font-weight: 500;
+        }
+        
+        .trash-level {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .level-critical { color: var(--danger); }
+        .level-warning { color: var(--warning); }
+        .level-normal { color: var(--success); }
+        
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease, background 0.3s;
+        }
+        
+        .last-updated {
+            color: var(--gray);
+            font-size: 0.85rem;
+            text-align: right;
+            margin-top: 1.5rem;
+            font-style: italic;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: #3a56d4;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(67, 97, 238, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        
+        .error-message {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            color: var(--danger);
+            margin-bottom: 1.5rem;
+        }
+        
+        .error-message button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .error-message button:hover {
+            background: #3a56d4;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .bin-card {
+                padding: 1.5rem;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+                margin: 1rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bin-card">
+            <h1 class="bin-title">
+                <i class="fas fa-trash-alt"></i>
+                <span id="bin-title">Bin Details</span>
+            </h1>
+            
+            <div class="info-row">
+                <span class="info-label">
+                    <i class="fas fa-id-card"></i>
+                    Bin ID:
+                </span>
+                <span class="info-value" id="bin-id">-</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Location:
+                </span>
+                <span class="info-value" id="bin-location">-</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Status:
+                </span>
+                <div>
+                    <span id="bin-status" class="trash-level">-</span>
+                    <div class="progress-container">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">
+                    <i class="far fa-clock"></i>
+                    Last Emptied:
+                </span>
+                <span class="info-value" id="bin-last-emptied">-</span>
+            </div>
+            
+            <p id="last-updated" class="last-updated">-</p>
+        </div>
+        
+        <a href="index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+        
+        <div id="loading" class="loading-spinner"></div>
+        <div id="error-display" class="error-message" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
+            authDomain: "bingo-b9b42.firebaseapp.com",
+            projectId: "bingo-b9b42",
+            storageBucket: "bingo-b9b42.appspot.com",
+            messagingSenderId: "588496760146",
+            appId: "1:588496760146:web:1a3751363269ce12b5de8b"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Get bin ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const binId = urlParams.get('id');
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorEl = document.getElementById('error-display');
+            errorEl.style.display = 'block';
+            errorEl.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>${message}</p>
+                <button onclick="window.location.reload()">
+                    <i class="fas fa-sync-alt"></i> Try Again
+                </button>
+            `;
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Never emptied';
+            const date = timestamp.toDate();
+            return date.toLocaleString();
+        }
+
+        function updateProgressBar(level) {
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = `${level}%`;
+            
+            if (level > 80) {
+                progressBar.style.background = 'var(--danger)';
+            } else if (level > 50) {
+                progressBar.style.background = 'var(--warning)';
+            } else {
+                progressBar.style.background = 'var(--success)';
+            }
+        }
+
+        function updateBinData() {
+            if (!binId) {
+                showError('No bin specified.<br>Please visit this page with a bin ID (e.g., bin.html?id=bin01)');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('bin-id').textContent = binId;
+            document.getElementById('loading').style.display = 'block';
+
+            // Real-time listener for this specific bin document
+            db.collection("trash_bins").doc(binId).onSnapshot(
+                (doc) => {
+                    document.getElementById('loading').style.display = 'none';
+                    const now = new Date();
+                    
+                    if (doc.exists) {
+                        const binData = doc.data();
+                        
+                        // Update all fields
+                        document.getElementById('bin-location').textContent =
+                            binData.location || 'Location not specified';
+                        
+                        const trashLevel = binData.trash_level || 0;
+                        const levelElement = document.getElementById('bin-status');
+                        levelElement.textContent = `${trashLevel}% full`;
+                        
+                        // Set status color and progress bar
+                        levelElement.className = 'trash-level ' +
+                            (trashLevel > 80 ? 'level-critical' :
+                             trashLevel > 50 ? 'level-warning' : 'level-normal');
+                        
+                        updateProgressBar(trashLevel);
+                        
+                        // Display last emptied timestamp
+                        document.getElementById('bin-last-emptied').textContent =
+                            formatDate(binData.last_emptied);
+                            
+                        // Update title with fill percentage
+                        document.getElementById('bin-title').textContent =
+                            `Bin Status (${trashLevel}% full)`;
+                    } else {
+                        showError(`Bin <strong>"${binId}"</strong> not found in database`);
+                    }
+                    
+                    document.getElementById('last-updated').textContent =
+                        `Last updated: ${now.toLocaleTimeString()}`;
+                },
+                (error) => {
+                    showError(`Error loading bin data:<br>${error.message}`);
+                    console.error("Firebase error:", error);
+                }
+            );
+        }
+
+        // Start loading data
+        updateBinData();
+    </script>
+</body>
+</html>
