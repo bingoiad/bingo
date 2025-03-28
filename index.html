@@ -8,92 +8,193 @@
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #2e7d32; /* Deep green */
+            --secondary: #388e3c; /* Medium green */
+            --accent: #7cb342; /* Light green */
+            --danger: #d32f2f; /* Red for alerts */
+            --warning: #ffa000; /* Amber for warnings */
+            --light: #f1f8e9; /* Very light green */
+            --dark: #1b5e20; /* Dark green */
+            --text: #2e3a3d; /* Dark gray-green */
+            --gray: #78909c; /* Cool gray */
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--text);
+        }
+        
+        .container {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            animation: fadeIn 0.5s ease-out;
         }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         h1 {
-            color: #2c3e50;
+            color: var(--dark);
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
         }
+        
         .bin-card {
             background: white;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-left: 4px solid var(--accent);
         }
+        
         .bin-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+        
         .bin-id {
-            font-weight: 700;
-            color: #3498db;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
         }
+        
         .location {
-            color: #7f8c8d;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.75rem 0;
         }
+        
         .trash-level {
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
+        
         .view-link {
-            display: inline-block;
-            margin-top: 10px;
-            color: #e74c3c;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            color: var(--primary);
             text-decoration: none;
             font-weight: 500;
+            transition: color 0.2s;
         }
+        
+        .view-link:hover {
+            color: var(--dark);
+        }
+        
         .loading-container {
             text-align: center;
-            margin: 40px 0;
+            margin: 2rem 0;
         }
+        
         .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
+            border: 4px solid rgba(46, 125, 50, 0.1);
             border-radius: 50%;
-            border-top: 4px solid #3498db;
+            border-top: 4px solid var(--primary);
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
         }
+        
+        .error {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            color: var(--danger);
+            margin-bottom: 1.5rem;
+        }
+        
+        .error button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .error button:hover {
+            background: var(--dark);
+        }
+        
+        .last-updated {
+            color: var(--gray);
+            font-size: 0.85rem;
+            text-align: right;
+            margin-top: 1.5rem;
+            font-style: italic;
+        }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .error {
-            color: #e74c3c;
-            text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            max-width: 80%;
-            margin: 20px auto;
-        }
-        .last-updated {
-            font-size: 12px;
-            color: #95a5a6;
-            text-align: right;
-            margin-top: 20px;
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .bin-card {
+                padding: 1.25rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>🗑️ BinGo Dashboard</h1>
-    <div id="bins-list">
-        <div class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>Loading bins data...</p>
+    <div class="container">
+        <h1>
+            <i class="fas fa-recycle"></i>
+            BinGo Dashboard
+        </h1>
+        
+        <div id="bins-list">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Loading bins data...</p>
+            </div>
         </div>
+        
+        <p id="last-updated" class="last-updated"></p>
     </div>
-    <p id="last-updated" class="last-updated"></p>
 
     <script>
         // Firebase Configuration
@@ -123,7 +224,7 @@
             
             db.collection("trash_bins").get().then((querySnapshot) => {
                 if (querySnapshot.empty) {
-                    binsList.innerHTML = '<p class="error">No bins found in the system.</p>';
+                    binsList.innerHTML = '<div class="error"><i class="fas fa-info-circle"></i><p>No bins found in the system.</p></div>';
                     return;
                 }
 
@@ -133,10 +234,21 @@
                     const bin = doc.data();
                     binsList.innerHTML += `
                         <div class="bin-card">
-                            <h2 class="bin-id">Bin ID: ${doc.id}</h2>
-                            <p class="location">📍 ${bin.location || 'Location not specified'}</p>
-                            <p class="trash-level">🗑️ ${bin.trash_level || '0'}% full</p>
-                            <a href="bin.html?id=${doc.id}" class="view-link">View details →</a>
+                            <h2 class="bin-id">
+                                <i class="fas fa-trash-alt"></i>
+                                Bin ID: ${doc.id}
+                            </h2>
+                            <p class="location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                ${bin.location || 'Location not specified'}
+                            </p>
+                            <p class="trash-level">
+                                <i class="fas fa-tachometer-alt"></i>
+                                ${bin.trash_level || '0'}% full
+                            </p>
+                            <a href="bin.html?id=${doc.id}" class="view-link">
+                                View details <i class="fas fa-arrow-right"></i>
+                            </a>
                         </div>
                     `;
                 });
@@ -145,10 +257,13 @@
             }).catch((error) => {
                 console.error("Firebase error:", error);
                 binsList.innerHTML = `
-                    <p class="error">
-                        Failed to load data. <br>
-                        <button onclick="window.location.reload()">Retry</button>
-                    </p>
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Failed to load data.</p>
+                        <button onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </div>
                 `;
             });
         }
