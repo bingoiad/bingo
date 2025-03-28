@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinGo Dashboard</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .bin-card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .bin-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .bin-id {
+            font-weight: 700;
+            color: #3498db;
+        }
+        .location {
+            color: #7f8c8d;
+        }
+        .trash-level {
+            font-weight: 500;
+        }
+        .view-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #e74c3c;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .loading-container {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            max-width: 80%;
+            margin: 20px auto;
+        }
+        .last-updated {
+            font-size: 12px;
+            color: #95a5a6;
+            text-align: right;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗑️ BinGo Dashboard</h1>
+    <div id="bins-list">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Loading bins data...</p>
+        </div>
+    </div>
+    <p id="last-updated" class="last-updated"></p>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
+            authDomain: "bingo-b9b42.firebaseapp.com",
+            projectId: "bingo-b9b42",
+            storageBucket: "bingo-b9b42.firebasestorage.app",
+            messagingSenderId: "588496760146",
+            appId: "1:588496760146:web:1a3751363269ce12b5de8b"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Update last fetched time
+        function updateLastFetchedTime() {
+            const now = new Date();
+            document.getElementById('last-updated').textContent =
+                `Last updated: ${now.toLocaleTimeString()}`;
+        }
+
+        // Load all trash bins
+        function loadBins() {
+            const binsList = document.getElementById('bins-list');
+            
+            db.collection("trash_bins").get().then((querySnapshot) => {
+                if (querySnapshot.empty) {
+                    binsList.innerHTML = '<p class="error">No bins found in the system.</p>';
+                    return;
+                }
+
+                binsList.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const bin = doc.data();
+                    binsList.innerHTML += `
+                        <div class="bin-card">
+                            <h2 class="bin-id">Bin ID: ${doc.id}</h2>
+                            <p class="location">📍 ${bin.location || 'Location not specified'}</p>
+                            <p class="trash-level">🗑️ ${bin.trash_level || '0'}% full</p>
+                            <a href="bin.html?id=${doc.id}" class="view-link">View details →</a>
+                        </div>
+                    `;
+                });
+                
+                updateLastFetchedTime();
+            }).catch((error) => {
+                console.error("Firebase error:", error);
+                binsList.innerHTML = `
+                    <p class="error">
+                        Failed to load data. <br>
+                        <button onclick="window.location.reload()">Retry</button>
+                    </p>
+                `;
+            });
+        }
+
+        // Initial load + auto-refresh every 30 seconds
+        loadBins();
+        setInterval(loadBins, 30000);
+    </script>
+</body>
+</html>
