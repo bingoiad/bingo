@@ -324,6 +324,33 @@
         .alt-bin-full .suggestion-title {
             color: var(--warning);
         }
+
+        /* SMALL NAVIGATION BUTTON STYLES */
+        .small-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            background-color: var(--maps-blue);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            height: 28px;
+        }
+
+        .small-nav-btn:hover {
+            background-color: #3367D6;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .small-nav-container {
+            margin-top: 1rem;
+            text-align: right;
+        }
         
         @media (max-width: 600px) {
             body {
@@ -356,6 +383,10 @@
             .navigation-btn {
                 flex: 1;
                 justify-content: center;
+            }
+
+            .small-nav-container {
+                text-align: center;
             }
         }
     </style>
@@ -465,6 +496,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         const binId = urlParams.get('id');
         let unsubscribeListener = null;
+        let cameFromFullBin = false;
+        let originalBinLocation = '';
 
         function getAlternativeBin(currentBinId) {
             return currentBinId === 'bin01' ? 'bin02' : 'bin01';
@@ -517,6 +550,9 @@
                     const suggestionLink = document.getElementById('suggestion-link');
                     const navigationLink = document.getElementById('navigation-link');
                     
+                    // Store the original location when coming from a full bin
+                    originalBinLocation = document.getElementById('bin-location').textContent;
+                    
                     // Reset display state
                     suggestionBox.classList.remove('alt-bin-full');
                     suggestionLink.style.display = 'inline-flex';
@@ -529,7 +565,7 @@
                         navigationLink.style.display = 'none';
                     } else {
                         suggestionText.textContent = `The closest available bin is ${alternativeBin} (${altTrashLevel}% full).`;
-                        suggestionLink.href = `bin.html?id=${alternativeBin}`;
+                        suggestionLink.href = `bin.html?id=${alternativeBin}&fromFull=true&fromLocation=${encodeURIComponent(originalBinLocation)}`;
                         
                         const currentBinLocation = document.getElementById('bin-location').textContent;
                         const altBinLocation = altBinData.location || 'Unknown Location';
@@ -540,6 +576,34 @@
                 }
             } catch (error) {
                 console.error("Error checking alternative bin:", error);
+            }
+        }
+
+        function showSmallNavigationButton() {
+            // Check if we came from a full bin (stored in URL parameter)
+            const urlParams = new URLSearchParams(window.location.search);
+            cameFromFullBin = urlParams.get('fromFull') === 'true';
+            originalBinLocation = urlParams.get('fromLocation') || '';
+            
+            if (cameFromFullBin && originalBinLocation) {
+                // Remove any existing small nav button
+                const existingContainer = document.querySelector('.small-nav-container');
+                if (existingContainer) existingContainer.remove();
+                
+                const smallNavContainer = document.createElement('div');
+                smallNavContainer.className = 'small-nav-container';
+                
+                const smallNavBtn = document.createElement('a');
+                smallNavBtn.className = 'small-nav-btn';
+                smallNavBtn.href = generateMapsLink(originalBinLocation, document.getElementById('bin-location').textContent);
+                smallNavBtn.target = /Android|iPhone|iPad/i.test(navigator.userAgent) ? '_self' : '_blank';
+                smallNavBtn.innerHTML = '<i class="fas fa-map-marked-alt"></i> How to get here';
+                
+                smallNavContainer.appendChild(smallNavBtn);
+                
+                // Insert after the last-updated paragraph
+                const lastUpdated = document.getElementById('last-updated');
+                lastUpdated.parentNode.insertBefore(smallNavContainer, lastUpdated.nextSibling);
             }
         }
 
@@ -569,6 +633,9 @@
             document.getElementById('bin-title').textContent = `Bin Status (${trashLevel}% full)`;
             document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
             document.getElementById('loading').style.display = 'none';
+            
+            // Show small navigation button if applicable
+            showSmallNavigationButton();
         }
 
         async function updateBinData() {
@@ -616,19 +683,6 @@
             );
         }
 
-        // Local storage functions
-        const STORAGE_KEY = `binHistory_${binId}`;
-
-        function saveLocalHistory(level) {
-            const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (history.length >= 100) history.shift();
-            history.push({
-                timestamp: new Date().toISOString(),
-                level: level
-            });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-        }
-
         // Event listeners
         window.addEventListener('beforeunload', function() {
             if (unsubscribeListener) {
@@ -638,6 +692,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             updateBinData();
+            showSmallNavigationButton();
         });
 
         window.addEventListener('pageshow', function(event) {
