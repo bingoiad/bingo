@@ -22,6 +22,7 @@
             --dark: #1b5e20; /* Dark green */
             --text: #2e3a3d; /* Dark gray-green */
             --gray: #78909c; /* Cool gray */
+            --maps-blue: #4285F4; /* Google Maps blue */
         }
         
         * {
@@ -267,6 +268,12 @@
             margin-bottom: 1rem;
         }
 
+        .suggestion-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
         .suggestion-btn {
             display: inline-flex;
             align-items: center;
@@ -283,6 +290,25 @@
         .suggestion-btn:hover {
             background-color: var(--dark);
             transform: translateY(-2px);
+        }
+
+        .navigation-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: var(--maps-blue);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .navigation-btn:hover {
+            background-color: #3367D6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         /* ALTERNATIVE BIN FULL STYLES */
@@ -319,6 +345,17 @@
             .suggestion-box {
                 flex-direction: column;
                 text-align: center;
+            }
+            
+            .suggestion-actions {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .suggestion-btn,
+            .navigation-btn {
+                flex: 1;
+                justify-content: center;
             }
         }
     </style>
@@ -386,9 +423,14 @@
                 <div class="suggestion-content">
                     <h3 class="suggestion-title">Alternative Bin Available</h3>
                     <p class="suggestion-message" id="suggestion-text"></p>
-                    <a href="#" id="suggestion-link" class="suggestion-btn" style="display: none;">
-                        <i class="fas fa-arrow-right"></i> Go to Suggested Bin
-                    </a>
+                    <div class="suggestion-actions">
+                        <a href="#" id="suggestion-link" class="suggestion-btn">
+                            <i class="fas fa-arrow-right"></i> View Bin Details
+                        </a>
+                        <a href="#" id="navigation-link" class="navigation-btn">
+                            <i class="fas fa-map-marked-alt"></i> How to Get There
+                        </a>
+                    </div>
                 </div>
             </div>
             
@@ -405,202 +447,204 @@
     </div>
 
     <script>
-            // Firebase Configuration
-            const firebaseConfig = {
-                apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
-                authDomain: "bingo-b9b42.firebaseapp.com",
-                projectId: "bingo-b9b42",
-                storageBucket: "bingo-b9b42.appspot.com",
-                messagingSenderId: "588496760146",
-                appId: "1:588496760146:web:1a3751363269ce12b5de8b"
-            };
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
+            authDomain: "bingo-b9b42.firebaseapp.com",
+            projectId: "bingo-b9b42",
+            storageBucket: "bingo-b9b42.appspot.com",
+            messagingSenderId: "588496760146",
+            appId: "1:588496760146:web:1a3751363269ce12b5de8b"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Get bin ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const binId = urlParams.get('id');
+        let unsubscribeListener = null;
+
+        function getAlternativeBin(currentBinId) {
+            return currentBinId === 'bin01' ? 'bin02' : 'bin01';
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorEl = document.getElementById('error-display');
+            errorEl.style.display = 'block';
+            errorEl.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>${message}</p>
+                <button onclick="window.location.reload()">
+                    <i class="fas fa-sync-alt"></i> Try Again
+                </button>
+            `;
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Never emptied';
+            const date = timestamp.toDate();
+            return date.toLocaleString();
+        }
+
+        function updateProgressBar(level) {
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = `${level}%`;
             
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-
-            // Get bin ID from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const binId = urlParams.get('id');
-            let unsubscribeListener = null; // To store the real-time listener
-
-            function getAlternativeBin(currentBinId) {
-                // Simple logic - alternate between bin01 and bin02
-                return currentBinId === 'bin01' ? 'bin02' : 'bin01';
+            if (level > 80) {
+                progressBar.style.background = 'var(--danger)';
+            } else if (level > 50) {
+                progressBar.style.background = 'var(--warning)';
+            } else {
+                progressBar.style.background = 'var(--accent)';
             }
+        }
 
-            function showError(message) {
-                document.getElementById('loading').style.display = 'none';
-                const errorEl = document.getElementById('error-display');
-                errorEl.style.display = 'block';
-                errorEl.innerHTML = `
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <p>${message}</p>
-                    <button onclick="window.location.reload()">
-                        <i class="fas fa-sync-alt"></i> Try Again
-                    </button>
-                `;
-            }
+        function generateMapsLink(origin, destination) {
+            return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=walking`;
+        }
 
-            function formatDate(timestamp) {
-                if (!timestamp) return 'Never emptied';
-                const date = timestamp.toDate();
-                return date.toLocaleString();
-            }
-
-            function updateProgressBar(level) {
-                const progressBar = document.getElementById('progress-bar');
-                progressBar.style.width = `${level}%`;
-                
-                if (level > 80) {
-                    progressBar.style.background = 'var(--danger)';
-                } else if (level > 50) {
-                    progressBar.style.background = 'var(--warning)';
-                } else {
-                    progressBar.style.background = 'var(--accent)';
-                }
-            }
-
-            async function checkAlternativeBin(alternativeBin) {
-                try {
-                    const altBinDoc = await db.collection("trash_bins").doc(alternativeBin).get();
-                    if (altBinDoc.exists) {
-                        const altBinData = altBinDoc.data();
-                        const altTrashLevel = altBinData.trash_level || 0;
-                        const suggestionBox = document.getElementById('suggestion-box');
-                        const suggestionText = document.getElementById('suggestion-text');
-                        const suggestionLink = document.getElementById('suggestion-link');
+        async function checkAlternativeBin(alternativeBin) {
+            try {
+                const altBinDoc = await db.collection("trash_bins").doc(alternativeBin).get();
+                if (altBinDoc.exists) {
+                    const altBinData = altBinDoc.data();
+                    const altTrashLevel = altBinData.trash_level || 0;
+                    const suggestionBox = document.getElementById('suggestion-box');
+                    const suggestionText = document.getElementById('suggestion-text');
+                    const suggestionLink = document.getElementById('suggestion-link');
+                    const navigationLink = document.getElementById('navigation-link');
+                    
+                    // Reset display state
+                    suggestionBox.classList.remove('alt-bin-full');
+                    suggestionLink.style.display = 'inline-flex';
+                    navigationLink.style.display = 'inline-flex';
+                    
+                    if (altTrashLevel > 90) {
+                        suggestionBox.classList.add('alt-bin-full');
+                        suggestionText.textContent = `The closest bin (${alternativeBin}) is also full (${altTrashLevel}% capacity).`;
+                        suggestionLink.style.display = 'none';
+                        navigationLink.style.display = 'none';
+                    } else {
+                        suggestionText.textContent = `The closest available bin is ${alternativeBin} (${altTrashLevel}% full).`;
+                        suggestionLink.href = `bin.html?id=${alternativeBin}`;
                         
-                        if (altTrashLevel > 90) {
-                            // Alternative bin is also full
-                            suggestionBox.classList.add('alt-bin-full');
-                            suggestionText.textContent = `The closest bin (${alternativeBin}) is also full (${altTrashLevel}% capacity).`;
-                            suggestionLink.style.display = 'none';
-                        } else {
-                            // Alternative bin is available
-                            suggestionBox.classList.remove('alt-bin-full');
-                            suggestionText.textContent = `The closest available bin is ${alternativeBin} (${altTrashLevel}% full).`;
-                            suggestionLink.href = `bin.html?id=${alternativeBin}`;
-                            suggestionLink.style.display = 'inline-flex';
-                        }
-                        suggestionBox.style.display = 'flex';
+                        const currentBinLocation = document.getElementById('bin-location').textContent;
+                        const altBinLocation = altBinData.location || 'Unknown Location';
+                        navigationLink.href = generateMapsLink(currentBinLocation, altBinLocation);
+                        navigationLink.target = /Android|iPhone|iPad/i.test(navigator.userAgent) ? '_self' : '_blank';
                     }
-                } catch (error) {
-                    console.error("Error checking alternative bin:", error);
+                    suggestionBox.style.display = 'flex';
                 }
+            } catch (error) {
+                console.error("Error checking alternative bin:", error);
+            }
+        }
+
+        function updateUI(binData) {
+            const trashLevel = binData.trash_level || 0;
+            
+            document.getElementById('bin-location').textContent = binData.location || 'Location not specified';
+            
+            const levelElement = document.getElementById('bin-status');
+            levelElement.textContent = `${trashLevel}% full`;
+            levelElement.className = 'trash-level ' +
+                (trashLevel > 80 ? 'level-critical' :
+                 trashLevel > 50 ? 'level-warning' : 'level-normal');
+            
+            updateProgressBar(trashLevel);
+            
+            if (trashLevel > 75) {
+                document.getElementById('full-alert').style.display = 'flex';
+                const alternativeBin = getAlternativeBin(binId);
+                checkAlternativeBin(alternativeBin);
+            } else {
+                document.getElementById('full-alert').style.display = 'none';
+                document.getElementById('suggestion-box').style.display = 'none';
+            }
+            
+            document.getElementById('bin-last-emptied').textContent = formatDate(binData.last_emptied);
+            document.getElementById('bin-title').textContent = `Bin Status (${trashLevel}% full)`;
+            document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        async function updateBinData() {
+            if (!binId) {
+                showError('No bin specified.<br>Please visit this page with a bin ID (e.g., bin.html?id=bin01)');
+                return;
             }
 
-            function updateUI(binData) {
-                const trashLevel = binData.trash_level || 0;
-                
-                // Update all fields
-                document.getElementById('bin-location').textContent =
-                    binData.location || 'Location not specified';
-                
-                const levelElement = document.getElementById('bin-status');
-                levelElement.textContent = `${trashLevel}% full`;
-                
-                // Set status color and progress bar
-                levelElement.className = 'trash-level ' +
-                    (trashLevel > 80 ? 'level-critical' :
-                     trashLevel > 50 ? 'level-warning' : 'level-normal');
-                
-                updateProgressBar(trashLevel);
-                
-                // Check if we should show alerts and suggestions
-                if (trashLevel > 75) {
-                    document.getElementById('full-alert').style.display = 'flex';
-                    
-                    // Get and check alternative bin
-                    const alternativeBin = getAlternativeBin(binId);
-                    checkAlternativeBin(alternativeBin);
-                } else {
-                    document.getElementById('full-alert').style.display = 'none';
-                    document.getElementById('suggestion-box').style.display = 'none';
-                }
-                
-                // Display last emptied timestamp
-                document.getElementById('bin-last-emptied').textContent =
-                    formatDate(binData.last_emptied);
-                    
-                // Update title with fill percentage
-                document.getElementById('bin-title').textContent =
-                    `Bin Status (${trashLevel}% full)`;
-                    
-                document.getElementById('last-updated').textContent =
-                    `Last updated: ${new Date().toLocaleTimeString()}`;
-                    
-                document.getElementById('loading').style.display = 'none';
-            }
+            document.getElementById('bin-id').textContent = binId;
+            document.getElementById('loading').style.display = 'block';
 
-            async function updateBinData() {
-                if (!binId) {
-                    showError('No bin specified.<br>Please visit this page with a bin ID (e.g., bin.html?id=bin01)');
+            try {
+                const currentBinDoc = await db.collection("trash_bins").doc(binId).get();
+                
+                if (!currentBinDoc.exists) {
+                    showError(`Bin <strong>"${binId}"</strong> not found in database`);
                     return;
                 }
 
-                // Show loading state
-                document.getElementById('bin-id').textContent = binId;
-                document.getElementById('loading').style.display = 'block';
-
-                try {
-                    // Check the current bin status first
-                    const currentBinDoc = await db.collection("trash_bins").doc(binId).get();
-                    
-                    if (!currentBinDoc.exists) {
-                        showError(`Bin <strong>"${binId}"</strong> not found in database`);
-                        return;
-                    }
-
-                    updateUI(currentBinDoc.data());
-                    
-                    // Set up real-time listener after initial load
-                    setupRealtimeListener();
-                    
-                } catch (error) {
-                    showError(`Error loading bin data:<br>${error.message}`);
-                    console.error("Firebase error:", error);
-                    document.getElementById('full-alert').style.display = 'none';
-                    document.getElementById('suggestion-box').style.display = 'none';
-                }
-            }
-
-            function setupRealtimeListener() {
-                // Unsubscribe any existing listener first
-                if (unsubscribeListener) {
-                    unsubscribeListener();
-                }
+                updateUI(currentBinDoc.data());
+                setupRealtimeListener();
                 
-                unsubscribeListener = db.collection("trash_bins").doc(binId).onSnapshot(
-                    (doc) => {
-                        if (doc.exists) {
-                            updateUI(doc.data());
-                        }
-                    },
-                    (error) => {
-                        console.error("Firebase error:", error);
-                    }
-                );
+            } catch (error) {
+                showError(`Error loading bin data:<br>${error.message}`);
+                console.error("Firebase error:", error);
+                document.getElementById('full-alert').style.display = 'none';
+                document.getElementById('suggestion-box').style.display = 'none';
             }
+        }
 
-            // Clean up listener when leaving the page
-            window.addEventListener('beforeunload', function() {
-                if (unsubscribeListener) {
-                    unsubscribeListener();
+        function setupRealtimeListener() {
+            if (unsubscribeListener) {
+                unsubscribeListener();
+            }
+            
+            unsubscribeListener = db.collection("trash_bins").doc(binId).onSnapshot(
+                (doc) => {
+                    if (doc.exists) {
+                        updateUI(doc.data());
+                    }
+                },
+                (error) => {
+                    console.error("Firebase error:", error);
                 }
-            });
+            );
+        }
 
-            // Initialize when page loads
-            document.addEventListener('DOMContentLoaded', function() {
+        // Local storage functions
+        const STORAGE_KEY = `binHistory_${binId}`;
+
+        function saveLocalHistory(level) {
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (history.length >= 100) history.shift();
+            history.push({
+                timestamp: new Date().toISOString(),
+                level: level
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        }
+
+        // Event listeners
+        window.addEventListener('beforeunload', function() {
+            if (unsubscribeListener) {
+                unsubscribeListener();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBinData();
+        });
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
                 updateBinData();
-            });
-
-            // Handle back/forward navigation
-            window.addEventListener('pageshow', function(event) {
-                if (event.persisted) {
-                    updateBinData();
-                }
-            });
-        </script>
-    </body>
-    </html>
+            }
+        });
+    </script>
+</body>
+</html>
