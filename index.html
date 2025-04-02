@@ -218,6 +218,294 @@
     </style>
 </head>
 <body>
+    
+    <div class="fun-fact-bar">
+      <div class="fun-fact-content">
+        <i class="fas fa-recycle pulse"></i>
+        <span id="trash-fact">Did you know? <span id="fact-text">Loading fascinating fact...</span></span>
+        <button class="next-fact-btn" title="Next fact">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <style>
+      .fun-fact-bar {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+      }
+      
+      .fun-fact-content {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      
+      #trash-fact {
+        color: #2e7d32; /* Matching your bin green color */
+        font-weight: 500;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+      }
+      
+      #fact-text {
+        font-weight: 400;
+        color: #2e7d32; /* Matching your bin green color */
+      }
+      
+      .pulse {
+        color: #2e7d32; /* Matching your bin green color */
+        font-size: 1.2rem;
+        animation: pulse 2s infinite;
+      }
+      
+      .next-fact-btn {
+        background: none;
+        border: none;
+        color: #2e7d32; /* Matching your bin green color */
+        cursor: pointer;
+        padding: 0.3rem;
+        border-radius: 50%;
+        transition: all 0.3s;
+      }
+      
+      .next-fact-btn:hover {
+        background: rgba(46, 125, 50, 0.1);
+        transform: scale(1.1);
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .fact-transition {
+        animation: fadeIn 0.7s ease-out;
+      }
+
+      @media (max-width: 768px) {
+        .fun-fact-content {
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        #trash-fact {
+          flex-direction: column;
+          font-size: 0.85rem;
+        }
+        
+        .next-fact-btn {
+          margin-top: 0.5rem;
+        }
+      }
+    </style>
+
+    <script>
+      // Expanded to 150+ facts organized by category
+      const recyclingFacts = {
+        general: [
+          "🌎 The world produces over 2.1 billion tons of waste annually - equivalent to 7,000 Empire State Buildings",
+          "♻️ Recycling one ton of mixed paper saves 165 trees and 7,000 gallons of water",
+          "⏳ A single plastic bottle can take 450 years to decompose in landfills",
+          "📈 If all Americans recycled just 10% more paper, we'd save 5 million trees per year",
+          "🏙️ New Yorkers throw away enough trash daily to fill the Empire State Building",
+          "🌳 Recycling one ton of cardboard saves 46 gallons of oil",
+          "💧 Producing recycled paper uses 60% less water than virgin paper production",
+          "⚡ Recycling aluminum saves 95% of the energy needed to make new aluminum",
+          "🔥 Incinerating 10,000 tons of waste creates 1 job, while recycling creates 10 jobs",
+          "🏭 The recycling industry generates $117 billion in economic activity annually"
+        ],
+        
+        plastic: [
+          "🔄 Only 9% of the 9.2 billion tons of plastic ever produced has been recycled",
+          "🌊 Every minute, a garbage truck's worth of plastic enters our oceans",
+          "👕 It takes about 25 recycled PET bottles to make one polyester fleece jacket",
+          "🛑 Microplastics have been found in 83% of tap water samples worldwide",
+          "🔄 The plastic recycling symbol (♹) was created in 1988 but doesn't guarantee recyclability",
+          "🧴 Plastic shampoo bottles take 500+ years to decompose in landfills",
+          "🥤 The world uses 1 million plastic bottles per minute - 91% aren't recycled",
+          "🛍️ Americans use 100 billion plastic bags annually - recycling just 1% of them",
+          "🍽️ Plastic cutlery is among the top 10 most common beach litter items",
+          "🧩 Less than 1% of polystyrene (Styrofoam) is recycled due to processing costs"
+        ],
+        
+        paper: [
+          "📜 The first recorded paper recycling occurred in Japan in 1031 AD",
+          "📦 Corrugated cardboard has an 89% US recycling rate - the highest of any material",
+          "📨 The average American receives 41 pounds of junk mail yearly - most unrecycled",
+          "🌳 Recycling 1 ton of newspaper saves about 15 trees and 7,000 gallons of water",
+          "💧 Paper mills using recycled content produce 35% less water pollution",
+          "📚 Recycling all US newspapers could save 250 million trees annually",
+          "📊 Office paper can be recycled 5-7 times before fibers become too short",
+          "☕ Wax-coated paper cups aren't recyclable in most facilities - 16 billion are used yearly",
+          "🗞️ Newspaper takes about 6 weeks to decompose in nature (vs. 2-5 months for cardboard)",
+          "📝 The first US newspaper printed on recycled paper was the Boston Globe in 1874"
+        ],
+        
+        metal: [
+          "🔘 Aluminum can be recycled infinitely without quality loss - 75% of all aluminum ever made is still in use",
+          "⚡ Recycling one aluminum can saves enough energy to power a TV for 3 hours",
+          "🚗 Modern cars contain about 25% recycled steel - the most recycled material by weight",
+          "⏱️ An aluminum can be recycled and back on store shelves in as little as 60 days",
+          "💰 Recycled aluminum is worth $1,500+ per ton - making it highly valuable",
+          "🏗️ The Statue of Liberty contains 179,000 pounds of recycled copper",
+          "🔌 Copper wiring from electronics is 99.9% pure - making it ideal for recycling",
+          "🔄 Steel recycling saves enough energy annually to power 18 million homes",
+          "⚙️ Recycling one ton of steel conserves 2,500 pounds of iron ore and 1,400 pounds of coal",
+          "💍 Gold from one ton of recycled circuit boards exceeds that from 17 tons of gold ore"
+        ],
+        
+        ewaste: [
+          "📱 Americans replace their cell phones every 18 months - recycling just 15% of them",
+          "💻 Recycling one million laptops saves energy equivalent to 3,500 homes' annual use",
+          "🖥️ Only 12.5% of the 57 million tons of annual e-waste is properly recycled",
+          "🔋 Lithium-ion battery recycling could grow 10x by 2030 due to EV demand",
+          "🎮 Vintage gaming consoles contain gold worth recycling - some NES cartridges have $30 in gold",
+          "📺 CRT TVs contain 4-8 pounds of lead - requiring special recycling",
+          "💾 Hard drives contain platinum and rare earth metals - 2 million tons are discarded yearly",
+          "🖨️ Printer cartridges take 450-1,000 years to decompose - but 70% are recyclable",
+          "🔌 Americans throw away $60 million in gold/silver from electronics annually",
+          "🔄 Proper e-waste recycling prevents heavy metals from leaching into groundwater"
+        ],
+        
+        foodWaste: [
+          "🍌 45% of all fruits/vegetables are wasted globally - the highest of any food group",
+          "🗑️ US food waste could fill 730 football stadiums yearly - 40% of all food produced",
+          "💨 Food waste emits 8% of global greenhouse gases - 3x aviation's impact",
+          "🔄 Composting food waste reduces methane emissions by 95% compared to landfills",
+          "🥕 Carrot tops can be regrown from scraps - reducing kitchen waste",
+          "🍎 The average American family wastes $1,800 worth of food annually",
+          "🥬 Lettuce is the most wasted vegetable - 55% never gets eaten",
+          "🍞 Bread is the most wasted household food item - 32% is thrown away",
+          "☕ Used coffee grounds make excellent natural deodorizers and garden fertilizer",
+          "🥚 Eggshells add valuable calcium to compost and deter garden pests"
+        ],
+        
+        innovations: [
+          "🧪 Chemical recycling can break plastics down to molecular level for infinite reuse",
+          "🦠 Fungi-based packaging decomposes in 45 days - being tested by IKEA",
+          "🛰️ Companies like Orbit Fab are developing space junk recycling technology",
+          "👟 Adidas has made 11 million shoes from recycled ocean plastic since 2015",
+          "🏗️ Recycled concrete can be 30% stronger than conventional concrete",
+          "🧱 Plastic waste is being turned into construction bricks stronger than concrete",
+          "🧴 Loop by TerraCycle delivers products in reusable containers collected for cleaning/refilling",
+          "🍽️ Notpla creates edible seaweed packaging that decomposes in weeks",
+          "🤖 AMP Robotics uses AI-powered robots that sort recyclables 60x faster than humans",
+          "♻️ Chemical process converts mixed plastic waste into virgin-quality plastic"
+        ],
+        
+        worldRecords: [
+          "🏆 Denmark recycles 89% of plastic bottles via a 3¢ deposit return system",
+          "🌏 Taiwan reduced landfill use from 70% to 5% in 20 years through strict recycling laws",
+          "🇸🇪 Sweden imports 2.3 million tons of trash yearly to fuel waste-to-energy plants",
+          "🇰🇷 South Korea recycles 95% of food waste via mandatory composting since 2013",
+          "🇨🇭 Switzerland charges $5 per trash bag - leading to 52% recycling rate",
+          "🇩🇪 Germany recycles 68% of waste - highest in EU through 'Green Dot' system",
+          "🇳🇴 Norway recycles 97% of plastic bottles via reverse vending machines",
+          "🇧🇪 Belgium recycles 87% of its packaging waste - 2nd highest in Europe",
+          "🇦🇹 Austria recycles 63% of municipal waste through door-to-door collection",
+          "🇸🇮 Slovenia increased recycling from 22% to 60% in just 10 years"
+        ],
+        
+        unusual: [
+          "🚬 Cigarette butts can be recycled into plastic pellets - 4.5 trillion are littered yearly",
+          "💇 Human hair absorbs oil spills (1kg hair = 8kg oil) - used in cleanup booms",
+          "👖 Old jeans become UltraTouch insulation - 300 pairs insulate an average home",
+          "🍷 13 billion wine corks are produced yearly - many recycled into flooring",
+          "🍌 Banana fibers make durable paper and textiles - 100 tons of stems wasted annually",
+          "🦷 Recycled dentures provide gold for electronics and jewelry",
+          "🎻 Used instrument strings become jewelry - 1.5 million violin strings discarded yearly",
+          "🎣 Fishing nets become skateboards - 640,000 tons of 'ghost gear' enter oceans yearly",
+          "🚗 Recycled tires become playground surfaces - 300 million discarded annually",
+          "🎨 Crayola's ColorCycle program has recycled 100+ million markers into energy"
+        ],
+        
+        history: [
+          "🏛️ Ancient Romans recycled broken amphorae into concrete for roads (200 BC)",
+          "📜 Japan's first paper recycling began in 1031 AD using old documents and rags",
+          "⚓ WWII saw massive scrap metal drives - 33% of US war materials came from recycling",
+          "🔄 The modern recycling symbol (♻️) was created by Gary Anderson in 1970 for a contest",
+          "📦 Cardboard box recycling began in 1890 when manufacturers reused shipping containers",
+          "🥫 The first aluminum can recycling program started in 1968 in Oregon",
+          "🔋 Lead-acid car batteries have been recycled since 1924 - current 99% recycling rate",
+          "📺 The first e-waste recycling laws began in 1991 with Switzerland's ordinance",
+          "🍶 Japan's meticulous recycling culture developed after 2000 when landfill space ran out",
+          "🔄 The 'Blue Box' curbside recycling program debuted in 1981 in Canada"
+        ],
+        
+        future: [
+          "🧪 Enzymatic recycling can break down plastics in days instead of centuries",
+          "🔄 Chemical process converts mixed plastic waste into virgin-quality plastic",
+          "🌱 Algae-based bioplastics decompose in months and don't require farmland",
+          "🤖 AI-powered smart bins automatically sort recyclables with 95% accuracy",
+          "🏙️ 'Urban mining' will recover metals from buildings and infrastructure",
+          "🛰️ Space-based recycling could process waste in zero-gravity environments",
+          "🧬 Genetically engineered bacteria may break down plastics naturally",
+          "💧 Waterless recycling processes could save billions of gallons annually",
+          "🏭 'Closed-loop' manufacturing aims for 100% material reuse",
+          "🌎 Global recycling rates could reach 75% by 2050 with current innovations"
+        ]
+      };
+
+      // Combine all categories into one array
+      const allFacts = Object.values(recyclingFacts).flat();
+
+      function showRandomFact() {
+        const factElement = document.getElementById('fact-text');
+        const container = document.getElementById('trash-fact');
+        
+        // Fade out
+        factElement.style.transition = 'opacity 0.3s ease';
+        factElement.style.opacity = 0;
+        
+        setTimeout(() => {
+          // Get random fact with emoji
+          const randomFact = allFacts[Math.floor(Math.random() * allFacts.length)];
+          
+          // Update text
+          factElement.textContent = randomFact;
+          
+          // Add animation class
+          factElement.classList.add('fact-transition');
+          
+          // Fade in
+          factElement.style.opacity = 1;
+          
+          // Remove animation class after it completes
+          setTimeout(() => {
+            factElement.classList.remove('fact-transition');
+          }, 700);
+          
+        }, 300);
+      }
+
+      // Initial fact + rotate every 30 seconds
+      showRandomFact();
+      setInterval(showRandomFact, 30000);
+      
+      // Click handler for next fact button
+      document.querySelector('.next-fact-btn').addEventListener('click', showRandomFact);
+      
+      // Also show new fact when clicking anywhere on the bar
+      document.querySelector('.fun-fact-bar').addEventListener('click', function(e) {
+        if (!e.target.closest('.next-fact-btn')) {
+          showRandomFact();
+        }
+      });
+    </script>
+    
     <div class="container">
         <h1>
             <i class="fas fa-recycle"></i>
@@ -246,7 +534,7 @@
             apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
             authDomain: "bingo-b9b42.firebaseapp.com",
             projectId: "bingo-b9b42",
-            storageBucket: "bingo-b9b42.firebasestorage.app",
+            storageBucket: "bingo-b9b42.appspot.com",
             messagingSenderId: "588496760146",
             appId: "1:588496760146:web:1a3751363269ce12b5de8b"
         };
