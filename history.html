@@ -215,8 +215,21 @@
 
         // Chart instances
         let bin01Chart, bin02Chart;
-        const UPDATE_INTERVAL = 5000; // 5 seconds
         
+        // Value stability tracking
+        const stabilityTrackers = {
+            bin01: {
+                currentValue: null,
+                firstDetected: null,
+                lastStoredValue: null
+            },
+            bin02: {
+                currentValue: null,
+                firstDetected: null,
+                lastStoredValue: null
+            }
+        };
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
@@ -235,7 +248,7 @@
             document.getElementById('exportPDF').addEventListener('click', exportToPDF);
         });
 
-        // Initialize data and set up polling
+        // Initialize data and set up stability checking
         async function initializeData() {
             // Initialize localStorage if needed
             if (!localStorage.getItem('binHistory_initialized')) {
@@ -248,10 +261,58 @@
             // Initial load
             await loadData(24);
             
-            // Set up regular updates every 5 seconds
-            setInterval(async () => {
-                await loadData(getSelectedTimeRange());
-            }, UPDATE_INTERVAL);
+            // Set up stability checker (runs every second)
+            setInterval(checkValueStability, 1000);
+        }
+
+        // Check if values have been stable for 5+ seconds
+        async function checkValueStability() {
+            const now = new Date();
+            
+            for (const binId of ['bin01', 'bin02']) {
+                try {
+                    // Get current reading from Firebase
+                    const doc = await db.collection("trash_bins").doc(binId).get();
+                    const currentValue = doc.exists ? doc.data().trash_level || 0 : 0;
+                    const tracker = stabilityTrackers[binId];
+                    
+                    // If value changed, reset tracking
+                    if (currentValue !== tracker.currentValue) {
+                        tracker.currentValue = currentValue;
+                        tracker.firstDetected = now;
+                        continue;
+                    }
+                    
+                    // If value is same as last stored, skip
+                    if (currentValue === tracker.lastStoredValue) {
+                        continue;
+                    }
+                    
+                    // Check if value has been stable for 5+ seconds
+                    if (tracker.firstDetected && (now - tracker.firstDetected) >= 5000) {
+                        // Add to history
+                        let history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
+                        history.push({
+                            timestamp: now.toISOString(),
+                            level: currentValue
+                        });
+                        
+                        // Keep only the last 1000 entries
+                        if (history.length > 1000) {
+                            history = history.slice(-1000);
+                        }
+                        
+                        // Save back to localStorage
+                        localStorage.setItem(`binHistory_${binId}`, JSON.stringify(history));
+                        tracker.lastStoredValue = currentValue;
+                        
+                        // Update the chart
+                        await loadData(getSelectedTimeRange());
+                    }
+                } catch (error) {
+                    console.error(`Error checking stability for ${binId}:`, error);
+                }
+            }
         }
 
         // Get currently selected time range
@@ -264,8 +325,8 @@
         async function loadData(hours) {
             try {
                 const [bin01Data, bin02Data] = await Promise.all([
-                    fetchHistory('bin01', hours),
-                    fetchHistory('bin02', hours)
+                    getHistoricalData('bin01', hours),
+                    getHistoricalData('bin02', hours)
                 ]);
                 
                 renderChart('bin01Chart', 'Bin 01', bin01Data, '#2e7d32');
@@ -275,29 +336,9 @@
             }
         }
 
-        // Fetch history data
-        async function fetchHistory(binId, hours) {
-            // Get current reading from Firebase
-            const doc = await db.collection("trash_bins").doc(binId).get();
-            const currentLevel = doc.exists ? doc.data().trash_level || 0 : 0;
-            const currentTime = new Date().toISOString();
-            
-            // Get existing history
-            let history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
-            
-            // Add current reading to history
-            history.push({
-                timestamp: currentTime,
-                level: currentLevel
-            });
-            
-            // Keep only the last 1000 entries
-            if (history.length > 1000) {
-                history = history.slice(-1000);
-            }
-            
-            // Save back to localStorage
-            localStorage.setItem(`binHistory_${binId}`, JSON.stringify(history));
+        // Get historical data from localStorage
+        function getHistoricalData(binId, hours) {
+            const history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
             
             // Filter by time range
             const cutoff = new Date();
@@ -415,8 +456,8 @@
         async function exportToExcel() {
             try {
                 const [bin01Data, bin02Data] = await Promise.all([
-                    fetchHistory('bin01', 168), // Get full week data
-                    fetchHistory('bin02', 168)
+                    getHistoricalData('bin01', 168), // Get full week data
+                    getHistoricalData('bin02', 168)
                 ]);
                 
                 // Format data for Excel
