@@ -137,6 +137,29 @@
             height: 300px !important;
         }
         
+        #custom-tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #2e7d32;
+            border-radius: 8px;
+            padding: 8px 12px 12px 12px;
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            font-family: 'Nunito';
+            z-index: 100;
+        }
+        
+        #close-tooltip {
+            pointer-events: auto;
+            background: none;
+            border: none;
+            color: #2e7d32;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+        }
+        
         @media (max-width: 768px) {
             body {
                 padding: 1.25rem;
@@ -198,6 +221,14 @@
         </div>
     </div>
 
+    <!-- Custom Tooltip -->
+    <div id="custom-tooltip">
+        <div style="text-align: right; margin-bottom: 5px;">
+            <button id="close-tooltip">✕</button>
+        </div>
+        <div id="tooltip-content"></div>
+    </div>
+
     <script>
         // Firebase Configuration
         const firebaseConfig = {
@@ -246,6 +277,12 @@
             // Export buttons
             document.getElementById('exportExcel').addEventListener('click', exportToExcel);
             document.getElementById('exportPDF').addEventListener('click', exportToPDF);
+            
+            // Close tooltip button
+            document.getElementById('close-tooltip').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('custom-tooltip').style.display = 'none';
+            });
         });
 
         // Initialize data and set up stability checking
@@ -336,20 +373,19 @@
             }
         }
 
-        // Get historical data from localStorage
+        // Get historical data from localStorage (with proper 24h rolling window)
         function getHistoricalData(binId, hours) {
             const history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
             
-            // Filter by time range
-            const cutoff = new Date();
-            cutoff.setHours(cutoff.getHours() - hours);
+            // Calculate cutoff time as current time minus hours
+            const cutoff = new Date(Date.now() - (hours * 60 * 60 * 1000));
             
             return history
                 .filter(entry => new Date(entry.timestamp) >= cutoff)
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
 
-        // Render charts
+        // Render charts with enhanced tooltips
         function renderChart(canvasId, label, data, color) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             
@@ -396,18 +432,27 @@
                             }
                         },
                         tooltip: {
-                            bodyFont: {
-                                family: 'Nunito',
-                                size: 14
-                            },
-                            titleFont: {
-                                family: 'Nunito',
-                                size: 14,
-                                weight: 'bold'
-                            },
+                            enabled: true,
+                            mode: 'nearest',
+                            intersect: true,
                             callbacks: {
-                                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}%`
-                            }
+                                title: (context) => {
+                                    const date = new Date(data[context[0].dataIndex].timestamp);
+                                    return date.toLocaleString();
+                                },
+                                label: (context) => {
+                                    return `Fill Level: ${context.parsed.y}%`;
+                                },
+                                footer: (context) => {
+                                    return `Bin: ${label}`;
+                                }
+                            },
+                            backgroundColor: 'rgba(46, 125, 50, 0.9)',
+                            titleFont: { family: 'Nunito', size: 14, weight: 'bold' },
+                            bodyFont: { family: 'Nunito', size: 14 },
+                            footerFont: { family: 'Nunito', size: 12 },
+                            padding: 12,
+                            cornerRadius: 8
                         }
                     },
                     scales: {
@@ -447,6 +492,26 @@
                                 }
                             }
                         }
+                    },
+                    onClick: (event, elements) => {
+                        const tooltip = document.getElementById('custom-tooltip');
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const timestamp = data[index].timestamp;
+                            const level = data[index].level;
+                            
+                            document.getElementById('tooltip-content').innerHTML = `
+                                <div style="color: #2e7d32; font-weight: bold; margin-bottom: 5px;">
+                                    ${new Date(timestamp).toLocaleString()}
+                                </div>
+                                <div>Fill Level: <strong>${level}%</strong></div>
+                            `;
+                            
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = `${event.clientX + 10}px`;
+                            tooltip.style.top = `${event.clientY + 10}px`;
+                            tooltip.style.pointerEvents = 'auto';
+                        }
                     }
                 }
             });
@@ -456,11 +521,10 @@
         async function exportToExcel() {
             try {
                 const [bin01Data, bin02Data] = await Promise.all([
-                    getHistoricalData('bin01', 168), // Get full week data
+                    getHistoricalData('bin01', 168),
                     getHistoricalData('bin02', 168)
                 ]);
                 
-                // Format data for Excel
                 const excelData = [
                     ...bin01Data.map(item => ({
                         'Bin ID': 'Bin 01',
@@ -474,14 +538,9 @@
                     }))
                 ];
                 
-                // Create worksheet
                 const ws = XLSX.utils.json_to_sheet(excelData);
-                
-                // Create workbook
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Bin History");
-                
-                // Export
                 XLSX.writeFile(wb, `BinGo_History_${new Date().toISOString().split('T')[0]}.xlsx`);
                 
             } catch (error) {
@@ -499,18 +558,15 @@
                     unit: 'mm'
                 });
                 
-                // Add title
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(18);
                 doc.setTextColor(46, 125, 50);
                 doc.text('BinGo Trash Level History', 105, 20, { align: 'center' });
                 
-                // Add subtitle
                 doc.setFontSize(12);
                 doc.setTextColor(100, 100, 100);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 27, { align: 'center' });
                 
-                // Add charts
                 const charts = ['bin01Chart', 'bin02Chart'];
                 let yPosition = 35;
                 
@@ -518,25 +574,21 @@
                     const canvas = document.getElementById(chartId);
                     const chartTitle = chartId.replace('Chart', '').replace('bin', 'Bin ');
                     
-                    // Add chart title
                     doc.setFontSize(14);
                     doc.setTextColor(0, 0, 0);
                     doc.text(chartTitle, 20, yPosition);
                     
-                    // Add chart image
                     const imageData = canvas.toDataURL('image/png', 1.0);
                     doc.addImage(imageData, 'PNG', 20, yPosition + 5, 170, 80);
                     
                     yPosition += 90;
                     
-                    // Add new page if needed
                     if (yPosition > 250 && chartId !== charts[charts.length - 1]) {
                         doc.addPage();
                         yPosition = 20;
                     }
                 }
                 
-                // Save PDF
                 doc.save(`BinGo_History_${new Date().toISOString().split('T')[0]}.pdf`);
                 
             } catch (error) {
