@@ -4,27 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BinGo - History Analytics</title>
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK - Para integração com a base de dados -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-    <!-- Chart.js -->
+    
+    <!-- Chart.js - Biblioteca para renderização de gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Export Libraries -->
+    
+    <!-- Bibliotecas para exportação de dados -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
-    <!-- Fonts & Icons -->
+    
+    <!-- Fontes e Ícones -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
+        /* Variáveis CSS para cores temáticas */
         :root {
-            --primary: #2e7d32;
-            --secondary: #388e3c;
-            --accent: #7cb342;
-            --light: #f1f8e9;
-            --text: #2e3a3d;
-            --chart-font: 'Nunito', sans-serif;
+            --primary: #2e7d32;    /* Verde principal */
+            --secondary: #388e3c;  /* Verde secundário */
+            --accent: #7cb342;     /* Destaque em verde claro */
+            --light: #f1f8e9;      /* Fundo claro */
+            --text: #2e3a3d;       /* Cor do texto principal */
+            --chart-font: 'Nunito', sans-serif; /* Fonte específica para gráficos */
         }
         
+        /* Estilos gerais do corpo da página */
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
@@ -33,11 +39,13 @@
             line-height: 1.6;
         }
         
+        /* Container principal que centraliza o conteúdo */
         .container {
             max-width: 1000px;
             margin: 0 auto;
         }
         
+        /* Estilo do título principal */
         h1 {
             color: var(--primary);
             display: flex;
@@ -46,6 +54,7 @@
             margin-bottom: 1.5rem;
         }
         
+        /* Cartão que contém cada gráfico */
         .graph-card {
             background: white;
             padding: 1.5rem;
@@ -55,10 +64,12 @@
             transition: transform 0.3s;
         }
         
+        /* Efeito hover nos cartões */
         .graph-card:hover {
             transform: translateY(-3px);
         }
         
+        /* Container dos controles (filtros e botões de exportação) */
         .controls {
             display: flex;
             flex-wrap: wrap;
@@ -67,11 +78,13 @@
             align-items: center;
         }
         
+        /* Seletor de intervalo de tempo */
         .time-selector {
             display: flex;
             gap: 0.75rem;
         }
         
+        /* Botões do seletor de tempo */
         .time-btn {
             background: var(--light);
             border: none;
@@ -86,17 +99,20 @@
             transition: all 0.2s;
         }
         
+        /* Estilo do botão ativo */
         .time-btn.active {
             background: var(--primary);
             color: white;
         }
         
+        /* Container dos botões de exportação */
         .export-options {
             display: flex;
             gap: 0.75rem;
             margin-left: auto;
         }
         
+        /* Botões de exportação */
         .export-btn {
             background: white;
             border: 2px solid var(--primary);
@@ -112,11 +128,13 @@
             transition: all 0.2s;
         }
         
+        /* Efeito hover nos botões de exportação */
         .export-btn:hover {
             background: var(--primary);
             color: white;
         }
         
+        /* Link para voltar ao dashboard */
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -128,15 +146,18 @@
             transition: color 0.2s;
         }
         
+        /* Efeito hover no link de voltar */
         .back-link:hover {
             color: var(--secondary);
         }
         
+        /* Estilo dos canvases dos gráficos */
         canvas {
             width: 100% !important;
             height: 300px !important;
         }
         
+        /* Tooltip personalizado */
         #custom-tooltip {
             position: absolute;
             background: white;
@@ -150,6 +171,7 @@
             z-index: 100;
         }
         
+        /* Botão para fechar o tooltip */
         #close-tooltip {
             pointer-events: auto;
             background: none;
@@ -160,6 +182,17 @@
             padding: 2px 5px;
         }
         
+        /* Info box about data averaging */
+        .data-info-box {
+            background: #e8f5e9;
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        /* Media queries para responsividade */
         @media (max-width: 768px) {
             body {
                 padding: 1.25rem;
@@ -184,13 +217,23 @@
 </head>
 <body>
     <div class="container">
+        <!-- Link para voltar ao dashboard -->
         <a href="index.html" class="back-link">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
 
+        <!-- Título principal da página -->
         <h1><i class="fas fa-chart-line"></i> Trash Level Analytics</h1>
         
+        <!-- Data averaging info -->
+        <div class="data-info-box">
+            <i class="fas fa-info-circle" style="color: var(--primary);"></i>
+            <strong>Data Note:</strong> All values shown are 15-second averages. Each data point represents the average of readings collected over the previous 15 seconds.
+        </div>
+        
+        <!-- Controles para filtrar e exportar dados -->
         <div class="controls">
+            <!-- Seletor de intervalo de tempo -->
             <div class="time-selector">
                 <button class="time-btn active" data-hours="24">
                     <i class="fas fa-clock"></i> 24 Hours
@@ -200,6 +243,7 @@
                 </button>
             </div>
             
+            <!-- Botões de exportação -->
             <div class="export-options">
                 <button class="export-btn" id="exportExcel">
                     <i class="fas fa-file-excel"></i> Excel
@@ -210,18 +254,20 @@
             </div>
         </div>
 
+        <!-- Gráfico para a Lixeira 01 -->
         <div class="graph-card">
             <h2><i class="fas fa-trash-alt" style="color: #2e7d32;"></i> Bin 01</h2>
             <canvas id="bin01Chart"></canvas>
         </div>
 
+        <!-- Gráfico para a Lixeira 02 -->
         <div class="graph-card">
             <h2><i class="fas fa-trash-alt" style="color: #7cb342;"></i> Bin 02</h2>
             <canvas id="bin02Chart"></canvas>
         </div>
     </div>
 
-    <!-- Custom Tooltip -->
+    <!-- Tooltip personalizado que aparece ao clicar no gráfico -->
     <div id="custom-tooltip">
         <div style="text-align: right; margin-bottom: 5px;">
             <button id="close-tooltip">✕</button>
@@ -230,7 +276,7 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
             authDomain: "bingo-b9b42.firebaseapp.com",
@@ -240,32 +286,24 @@
             appId: "1:588496760146:web:1a3751363269ce12b5de8b"
         };
         
-        // Initialize Firebase
+        // Inicialização do Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Chart instances
+        // Instâncias dos gráficos
         let bin01Chart, bin02Chart;
         
-        // Value stability tracking
-        const stabilityTrackers = {
-            bin01: {
-                currentValue: null,
-                firstDetected: null,
-                lastStoredValue: null
-            },
-            bin02: {
-                currentValue: null,
-                firstDetected: null,
-                lastStoredValue: null
-            }
+        // Data buffers for real-time averaging (mirrors the buffers from other pages)
+        const dataBuffers = {
+            bin01: { values: [], currentAverage: 0 },
+            bin02: { values: [], currentAverage: 0 }
         };
 
-        // Initialize when page loads
+        // Inicialização quando a página carrega
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
             
-            // Time range buttons
+            // Event listeners para os botões de intervalo de tempo
             document.querySelectorAll('.time-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
@@ -274,20 +312,66 @@
                 });
             });
             
-            // Export buttons
+            // Event listeners para os botões de exportação
             document.getElementById('exportExcel').addEventListener('click', exportToExcel);
             document.getElementById('exportPDF').addEventListener('click', exportToPDF);
             
-            // Close tooltip button
+            // Event listener para o botão de fechar o tooltip
             document.getElementById('close-tooltip').addEventListener('click', (e) => {
                 e.stopPropagation();
                 document.getElementById('custom-tooltip').style.display = 'none';
             });
+            
+            // Setup real-time updates for current buffers
+            setupRealTimeUpdates();
         });
 
-        // Initialize data and set up stability checking
+        /**
+         * Set up real-time updates to show current buffer state
+         */
+        function setupRealTimeUpdates() {
+            // Listen for changes to both bins
+            ['bin01', 'bin02'].forEach(binId => {
+                db.collection("trash_bins").doc(binId).onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const realTimeValue = doc.data().trash_level || 0;
+                        updateDataBuffer(binId, realTimeValue);
+                    }
+                });
+            });
+        }
+
+        /**
+         * Update data buffer with new real-time value
+         */
+        function updateDataBuffer(binId, realTimeValue) {
+            const buffer = dataBuffers[binId];
+            const now = Date.now();
+            
+            // Add current value
+            buffer.values.push({
+                value: realTimeValue,
+                timestamp: now
+            });
+            
+            // Remove values older than 15 seconds
+            const cutoff = now - 15000;
+            buffer.values = buffer.values.filter(item => item.timestamp >= cutoff);
+            
+            // Calculate average
+            if (buffer.values.length > 0) {
+                const sum = buffer.values.reduce((acc, item) => acc + item.value, 0);
+                buffer.currentAverage = Math.round((sum / buffer.values.length) * 10) / 10;
+            }
+            
+            console.log(`[${binId}] Buffer: ${buffer.values.length} values, Avg: ${buffer.currentAverage}%`);
+        }
+
+        /**
+         * Inicializa os dados e configura a verificação de estabilidade
+         */
         async function initializeData() {
-            // Initialize localStorage if needed
+            // Inicializa o localStorage se necessário
             if (!localStorage.getItem('binHistory_initialized')) {
                 ['bin01', 'bin02'].forEach(binId => {
                     localStorage.setItem(`binHistory_${binId}`, JSON.stringify([]));
@@ -295,70 +379,21 @@
                 localStorage.setItem('binHistory_initialized', 'true');
             }
             
-            // Initial load
+            // Carregamento inicial dos dados
             await loadData(24);
-            
-            // Set up stability checker (runs every second)
-            setInterval(checkValueStability, 1000);
         }
 
-        // Check if values have been stable for 5+ seconds
-        async function checkValueStability() {
-            const now = new Date();
-            
-            for (const binId of ['bin01', 'bin02']) {
-                try {
-                    // Get current reading from Firebase
-                    const doc = await db.collection("trash_bins").doc(binId).get();
-                    const currentValue = doc.exists ? doc.data().trash_level || 0 : 0;
-                    const tracker = stabilityTrackers[binId];
-                    
-                    // If value changed, reset tracking
-                    if (currentValue !== tracker.currentValue) {
-                        tracker.currentValue = currentValue;
-                        tracker.firstDetected = now;
-                        continue;
-                    }
-                    
-                    // If value is same as last stored, skip
-                    if (currentValue === tracker.lastStoredValue) {
-                        continue;
-                    }
-                    
-                    // Check if value has been stable for 5+ seconds
-                    if (tracker.firstDetected && (now - tracker.firstDetected) >= 5000) {
-                        // Add to history
-                        let history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
-                        history.push({
-                            timestamp: now.toISOString(),
-                            level: currentValue
-                        });
-                        
-                        // Keep only the last 1000 entries
-                        if (history.length > 1000) {
-                            history = history.slice(-1000);
-                        }
-                        
-                        // Save back to localStorage
-                        localStorage.setItem(`binHistory_${binId}`, JSON.stringify(history));
-                        tracker.lastStoredValue = currentValue;
-                        
-                        // Update the chart
-                        await loadData(getSelectedTimeRange());
-                    }
-                } catch (error) {
-                    console.error(`Error checking stability for ${binId}:`, error);
-                }
-            }
-        }
-
-        // Get currently selected time range
+        /**
+         * Obtém o intervalo de tempo selecionado
+         */
         function getSelectedTimeRange() {
             const activeBtn = document.querySelector('.time-btn.active');
             return activeBtn ? parseInt(activeBtn.dataset.hours) : 24;
         }
 
-        // Main data loader
+        /**
+         * Carrega os dados principais e renderiza os gráficos
+         */
         async function loadData(hours) {
             try {
                 const [bin01Data, bin02Data] = await Promise.all([
@@ -369,15 +404,17 @@
                 renderChart('bin01Chart', 'Bin 01', bin01Data, '#2e7d32');
                 renderChart('bin02Chart', 'Bin 02', bin02Data, '#7cb342');
             } catch (error) {
-                console.error("Error loading history:", error);
+                console.error("Erro ao carregar histórico:", error);
             }
         }
 
-        // Get historical data from localStorage (with proper 24h rolling window)
+        /**
+         * Obtém dados históricos do localStorage
+         */
         function getHistoricalData(binId, hours) {
             const history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
             
-            // Calculate cutoff time as current time minus hours
+            // Calcula o tempo de corte (hora atual menos o intervalo selecionado)
             const cutoff = new Date(Date.now() - (hours * 60 * 60 * 1000));
             
             return history
@@ -385,28 +422,36 @@
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
 
-        // Render charts with enhanced tooltips
+        /**
+         * Renderiza os gráficos com tooltips melhorados
+         */
         function renderChart(canvasId, label, data, color) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             
-            // Destroy previous chart if exists
+            // Destrói o gráfico anterior se existir
             if (window[`${canvasId}Instance`]) {
                 window[`${canvasId}Instance`].destroy();
             }
             
-            // Format labels with time and date
+            // Get current buffer average for this bin
+            const binId = canvasId.replace('Chart', '').toLowerCase();
+            const currentBufferAvg = dataBuffers[binId]?.currentAverage || 0;
+            const bufferSize = dataBuffers[binId]?.values.length || 0;
+            
+            // Formata as etiquetas com hora e data
             const labels = data.map(item => {
                 const date = new Date(item.timestamp);
                 return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) +
                        '\n' + date.toLocaleDateString([], {month: 'short', day: 'numeric'});
             });
             
+            // Cria uma nova instância do gráfico
             window[`${canvasId}Instance`] = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: label,
+                        label: `${label} (15s averages)`,
                         data: data.map(item => item.level),
                         borderColor: color,
                         backgroundColor: `${color}20`,
@@ -438,13 +483,19 @@
                             callbacks: {
                                 title: (context) => {
                                     const date = new Date(data[context[0].dataIndex].timestamp);
-                                    return date.toLocaleString();
+                                    return `15s Average: ${date.toLocaleString()}`;
                                 },
                                 label: (context) => {
-                                    return `Fill Level: ${context.parsed.y}%`;
+                                    return `Average Level: ${context.parsed.y}%`;
                                 },
                                 footer: (context) => {
-                                    return `Bin: ${label}`;
+                                    const binId = canvasId.replace('Chart', '').toLowerCase();
+                                    const currentAvg = dataBuffers[binId]?.currentAverage || 0;
+                                    const bufferSize = dataBuffers[binId]?.values.length || 0;
+                                    return [
+                                        `Current Buffer: ${bufferSize} readings`,
+                                        `Current 15s Average: ${currentAvg}%`
+                                    ];
                                 }
                             },
                             backgroundColor: 'rgba(46, 125, 50, 0.9)',
@@ -461,7 +512,7 @@
                             max: 100,
                             title: {
                                 display: true,
-                                text: 'Fill Level (%)',
+                                text: 'Average Fill Level (%)',
                                 font: {
                                     family: 'Nunito',
                                     size: 14,
@@ -478,7 +529,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Time',
+                                text: 'Time (15s averages)',
                                 font: {
                                     family: 'Nunito',
                                     size: 14,
@@ -502,9 +553,13 @@
                             
                             document.getElementById('tooltip-content').innerHTML = `
                                 <div style="color: #2e7d32; font-weight: bold; margin-bottom: 5px;">
-                                    ${new Date(timestamp).toLocaleString()}
+                                    15-Second Average
                                 </div>
-                                <div>Fill Level: <strong>${level}%</strong></div>
+                                <div>Time: <strong>${new Date(timestamp).toLocaleString()}</strong></div>
+                                <div>Average Level: <strong>${level}%</strong></div>
+                                <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
+                                    <i>Each point represents the average of<br>readings collected over 15 seconds</i>
+                                </div>
                             `;
                             
                             tooltip.style.display = 'block';
@@ -517,7 +572,9 @@
             });
         }
 
-        // Export to Excel
+        /**
+         * Exporta os dados para Excel
+         */
         async function exportToExcel() {
             try {
                 const [bin01Data, bin02Data] = await Promise.all([
@@ -529,27 +586,31 @@
                     ...bin01Data.map(item => ({
                         'Bin ID': 'Bin 01',
                         'Timestamp': new Date(item.timestamp).toLocaleString(),
-                        'Fill Level (%)': item.level
+                        '15-Second Average (%)': item.level,
+                        'Note': '15-second average of fill level readings'
                     })),
                     ...bin02Data.map(item => ({
                         'Bin ID': 'Bin 02',
                         'Timestamp': new Date(item.timestamp).toLocaleString(),
-                        'Fill Level (%)': item.level
+                        '15-Second Average (%)': item.level,
+                        'Note': '15-second average of fill level readings'
                     }))
                 ];
                 
                 const ws = XLSX.utils.json_to_sheet(excelData);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Bin History");
-                XLSX.writeFile(wb, `BinGo_History_${new Date().toISOString().split('T')[0]}.xlsx`);
+                XLSX.utils.book_append_sheet(wb, ws, "15-Second Averages");
+                XLSX.writeFile(wb, `BinGo_15s_Averages_${new Date().toISOString().split('T')[0]}.xlsx`);
                 
             } catch (error) {
-                console.error("Export failed:", error);
-                alert("Failed to export Excel file. Please try again.");
+                console.error("Falha na exportação:", error);
+                alert("Falha ao exportar para Excel. Por favor, tente novamente.");
             }
         }
 
-        // Export to PDF
+        /**
+         * Exporta os dados para PDF
+         */
         async function exportToPDF() {
             try {
                 const { jsPDF } = window.jspdf;
@@ -561,14 +622,18 @@
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(18);
                 doc.setTextColor(46, 125, 50);
-                doc.text('BinGo Trash Level History', 105, 20, { align: 'center' });
+                doc.text('BinGo - 15-Second Average History', 105, 20, { align: 'center' });
                 
                 doc.setFontSize(12);
                 doc.setTextColor(100, 100, 100);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 27, { align: 'center' });
                 
+                doc.setFontSize(10);
+                doc.setTextColor(80, 80, 80);
+                doc.text('Note: All values are 15-second averages of fill level readings', 105, 32, { align: 'center' });
+                
                 const charts = ['bin01Chart', 'bin02Chart'];
-                let yPosition = 35;
+                let yPosition = 40;
                 
                 for (const chartId of charts) {
                     const canvas = document.getElementById(chartId);
@@ -576,7 +641,7 @@
                     
                     doc.setFontSize(14);
                     doc.setTextColor(0, 0, 0);
-                    doc.text(chartTitle, 20, yPosition);
+                    doc.text(`${chartTitle} - 15-Second Averages`, 20, yPosition);
                     
                     const imageData = canvas.toDataURL('image/png', 1.0);
                     doc.addImage(imageData, 'PNG', 20, yPosition + 5, 170, 80);
@@ -589,13 +654,14 @@
                     }
                 }
                 
-                doc.save(`BinGo_History_${new Date().toISOString().split('T')[0]}.pdf`);
+                doc.save(`BinGo_15s_Averages_${new Date().toISOString().split('T')[0]}.pdf`);
                 
             } catch (error) {
-                console.error("Export failed:", error);
-                alert("Failed to generate PDF. Please try again.");
+                console.error("Falha na exportação:", error);
+                alert("Falha ao gerar PDF. Por favor, tente novamente.");
             }
         }
     </script>
 </body>
 </html>
+[file content end]
