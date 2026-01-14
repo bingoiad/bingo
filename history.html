@@ -4,18 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BinGo - History Analytics</title>
-    <!-- Firebase SDK - Para integração com a base de dados -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
     
-    <!-- Chart.js - Biblioteca para renderização de gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Bibliotecas para exportação de dados -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
     
-    <!-- Fontes e Ícones -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -182,16 +178,6 @@
             padding: 2px 5px;
         }
         
-        /* Info box about data averaging */
-        .data-info-box {
-            background: #e8f5e9;
-            border-left: 4px solid var(--accent);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-        }
-        
         /* Media queries para responsividade */
         @media (max-width: 768px) {
             body {
@@ -217,23 +203,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- Link para voltar ao dashboard -->
         <a href="index.html" class="back-link">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
 
-        <!-- Título principal da página -->
         <h1><i class="fas fa-chart-line"></i> Trash Level Analytics</h1>
         
-        <!-- Data averaging info -->
-        <div class="data-info-box">
-            <i class="fas fa-info-circle" style="color: var(--primary);"></i>
-            <strong>Data Note:</strong> All values shown are 15-second averages. Each data point represents the average of readings collected over the previous 15 seconds.
-        </div>
-        
-        <!-- Controles para filtrar e exportar dados -->
         <div class="controls">
-            <!-- Seletor de intervalo de tempo -->
             <div class="time-selector">
                 <button class="time-btn active" data-hours="24">
                     <i class="fas fa-clock"></i> 24 Hours
@@ -243,7 +219,6 @@
                 </button>
             </div>
             
-            <!-- Botões de exportação -->
             <div class="export-options">
                 <button class="export-btn" id="exportExcel">
                     <i class="fas fa-file-excel"></i> Excel
@@ -254,20 +229,17 @@
             </div>
         </div>
 
-        <!-- Gráfico para a Lixeira 01 -->
         <div class="graph-card">
             <h2><i class="fas fa-trash-alt" style="color: #2e7d32;"></i> Bin 01</h2>
             <canvas id="bin01Chart"></canvas>
         </div>
 
-        <!-- Gráfico para a Lixeira 02 -->
         <div class="graph-card">
             <h2><i class="fas fa-trash-alt" style="color: #7cb342;"></i> Bin 02</h2>
             <canvas id="bin02Chart"></canvas>
         </div>
     </div>
 
-    <!-- Tooltip personalizado que aparece ao clicar no gráfico -->
     <div id="custom-tooltip">
         <div style="text-align: right; margin-bottom: 5px;">
             <button id="close-tooltip">✕</button>
@@ -293,10 +265,10 @@
         // Instâncias dos gráficos
         let bin01Chart, bin02Chart;
         
-        // Data buffers for real-time averaging (mirrors the buffers from other pages)
+        // ** NEW: Buffers to collect data for averaging **
         const dataBuffers = {
-            bin01: { values: [], currentAverage: 0 },
-            bin02: { values: [], currentAverage: 0 }
+            bin01: [],
+            bin02: []
         };
 
         // Inicialização quando a página carrega
@@ -321,54 +293,10 @@
                 e.stopPropagation();
                 document.getElementById('custom-tooltip').style.display = 'none';
             });
-            
-            // Setup real-time updates for current buffers
-            setupRealTimeUpdates();
         });
 
         /**
-         * Set up real-time updates to show current buffer state
-         */
-        function setupRealTimeUpdates() {
-            // Listen for changes to both bins
-            ['bin01', 'bin02'].forEach(binId => {
-                db.collection("trash_bins").doc(binId).onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const realTimeValue = doc.data().trash_level || 0;
-                        updateDataBuffer(binId, realTimeValue);
-                    }
-                });
-            });
-        }
-
-        /**
-         * Update data buffer with new real-time value
-         */
-        function updateDataBuffer(binId, realTimeValue) {
-            const buffer = dataBuffers[binId];
-            const now = Date.now();
-            
-            // Add current value
-            buffer.values.push({
-                value: realTimeValue,
-                timestamp: now
-            });
-            
-            // Remove values older than 15 seconds
-            const cutoff = now - 15000;
-            buffer.values = buffer.values.filter(item => item.timestamp >= cutoff);
-            
-            // Calculate average
-            if (buffer.values.length > 0) {
-                const sum = buffer.values.reduce((acc, item) => acc + item.value, 0);
-                buffer.currentAverage = Math.round((sum / buffer.values.length) * 10) / 10;
-            }
-            
-            console.log(`[${binId}] Buffer: ${buffer.values.length} values, Avg: ${buffer.currentAverage}%`);
-        }
-
-        /**
-         * Inicializa os dados e configura a verificação de estabilidade
+         * Inicializa os dados e configura a coleta e processamento
          */
         async function initializeData() {
             // Inicializa o localStorage se necessário
@@ -381,6 +309,72 @@
             
             // Carregamento inicial dos dados
             await loadData(24);
+            
+            // 1. Coletar dados a cada segundo
+            setInterval(collectData, 1000);
+            
+            // 2. Processar buffers e atualizar a cada 15 segundos
+            setInterval(processBuffers, 15000);
+        }
+
+        /**
+         * Coleta leituras do Firebase e armazena no buffer
+         */
+        async function collectData() {
+            for (const binId of ['bin01', 'bin02']) {
+                try {
+                    const doc = await db.collection("trash_bins").doc(binId).get();
+                    if (doc.exists) {
+                        const level = doc.data().trash_level || 0;
+                        dataBuffers[binId].push(level);
+                    }
+                } catch (error) {
+                    console.error(`Erro ao coletar dados para ${binId}:`, error);
+                }
+            }
+        }
+
+        /**
+         * Processa os buffers, calcula média e atualiza histórico
+         */
+        async function processBuffers() {
+            const now = new Date();
+            let updated = false;
+
+            for (const binId of ['bin01', 'bin02']) {
+                const buffer = dataBuffers[binId];
+                
+                if (buffer.length > 0) {
+                    // Soma dos elementos
+                    const sum = buffer.reduce((a, b) => a + b, 0);
+                    // Média teto (Ceiling Average)
+                    const avg = Math.ceil(sum / buffer.length);
+                    
+                    // Adiciona ao histórico
+                    let history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
+                    history.push({
+                        timestamp: now.toISOString(),
+                        level: avg
+                    });
+                    
+                    // Mantém apenas os últimos 1000 registos
+                    if (history.length > 1000) {
+                        history = history.slice(-1000);
+                    }
+                    
+                    // Guarda no localStorage
+                    localStorage.setItem(`binHistory_${binId}`, JSON.stringify(history));
+                    
+                    // Limpa o buffer
+                    dataBuffers[binId] = [];
+                    updated = true;
+                }
+            }
+
+            // Atualiza o gráfico se houve novos dados
+            if (updated) {
+                await loadData(getSelectedTimeRange());
+            }
         }
 
         /**
@@ -433,11 +427,6 @@
                 window[`${canvasId}Instance`].destroy();
             }
             
-            // Get current buffer average for this bin
-            const binId = canvasId.replace('Chart', '').toLowerCase();
-            const currentBufferAvg = dataBuffers[binId]?.currentAverage || 0;
-            const bufferSize = dataBuffers[binId]?.values.length || 0;
-            
             // Formata as etiquetas com hora e data
             const labels = data.map(item => {
                 const date = new Date(item.timestamp);
@@ -451,7 +440,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: `${label} (15s averages)`,
+                        label: label,
                         data: data.map(item => item.level),
                         borderColor: color,
                         backgroundColor: `${color}20`,
@@ -483,19 +472,13 @@
                             callbacks: {
                                 title: (context) => {
                                     const date = new Date(data[context[0].dataIndex].timestamp);
-                                    return `15s Average: ${date.toLocaleString()}`;
+                                    return date.toLocaleString();
                                 },
                                 label: (context) => {
-                                    return `Average Level: ${context.parsed.y}%`;
+                                    return `Nível de Enchimento: ${context.parsed.y}%`;
                                 },
                                 footer: (context) => {
-                                    const binId = canvasId.replace('Chart', '').toLowerCase();
-                                    const currentAvg = dataBuffers[binId]?.currentAverage || 0;
-                                    const bufferSize = dataBuffers[binId]?.values.length || 0;
-                                    return [
-                                        `Current Buffer: ${bufferSize} readings`,
-                                        `Current 15s Average: ${currentAvg}%`
-                                    ];
+                                    return `Lixeira: ${label}`;
                                 }
                             },
                             backgroundColor: 'rgba(46, 125, 50, 0.9)',
@@ -512,7 +495,7 @@
                             max: 100,
                             title: {
                                 display: true,
-                                text: 'Average Fill Level (%)',
+                                text: 'Nível de Enchimento (%)',
                                 font: {
                                     family: 'Nunito',
                                     size: 14,
@@ -529,7 +512,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Time (15s averages)',
+                                text: 'Tempo',
                                 font: {
                                     family: 'Nunito',
                                     size: 14,
@@ -553,13 +536,9 @@
                             
                             document.getElementById('tooltip-content').innerHTML = `
                                 <div style="color: #2e7d32; font-weight: bold; margin-bottom: 5px;">
-                                    15-Second Average
+                                    ${new Date(timestamp).toLocaleString()}
                                 </div>
-                                <div>Time: <strong>${new Date(timestamp).toLocaleString()}</strong></div>
-                                <div>Average Level: <strong>${level}%</strong></div>
-                                <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
-                                    <i>Each point represents the average of<br>readings collected over 15 seconds</i>
-                                </div>
+                                <div>Nível de Enchimento: <strong>${level}%</strong></div>
                             `;
                             
                             tooltip.style.display = 'block';
@@ -584,23 +563,21 @@
                 
                 const excelData = [
                     ...bin01Data.map(item => ({
-                        'Bin ID': 'Bin 01',
-                        'Timestamp': new Date(item.timestamp).toLocaleString(),
-                        '15-Second Average (%)': item.level,
-                        'Note': '15-second average of fill level readings'
+                        'ID da Lixeira': 'Bin 01',
+                        'Data/Hora': new Date(item.timestamp).toLocaleString(),
+                        'Nível de Enchimento (%)': item.level
                     })),
                     ...bin02Data.map(item => ({
-                        'Bin ID': 'Bin 02',
-                        'Timestamp': new Date(item.timestamp).toLocaleString(),
-                        '15-Second Average (%)': item.level,
-                        'Note': '15-second average of fill level readings'
+                        'ID da Lixeira': 'Bin 02',
+                        'Data/Hora': new Date(item.timestamp).toLocaleString(),
+                        'Nível de Enchimento (%)': item.level
                     }))
                 ];
                 
                 const ws = XLSX.utils.json_to_sheet(excelData);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "15-Second Averages");
-                XLSX.writeFile(wb, `BinGo_15s_Averages_${new Date().toISOString().split('T')[0]}.xlsx`);
+                XLSX.utils.book_append_sheet(wb, ws, "Histórico");
+                XLSX.writeFile(wb, `BinGo_Histórico_${new Date().toISOString().split('T')[0]}.xlsx`);
                 
             } catch (error) {
                 console.error("Falha na exportação:", error);
@@ -622,26 +599,22 @@
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(18);
                 doc.setTextColor(46, 125, 50);
-                doc.text('BinGo - 15-Second Average History', 105, 20, { align: 'center' });
+                doc.text('Histórico BinGo - Níveis de Lixo', 105, 20, { align: 'center' });
                 
                 doc.setFontSize(12);
                 doc.setTextColor(100, 100, 100);
-                doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 27, { align: 'center' });
-                
-                doc.setFontSize(10);
-                doc.setTextColor(80, 80, 80);
-                doc.text('Note: All values are 15-second averages of fill level readings', 105, 32, { align: 'center' });
+                doc.text(`Gerado em: ${new Date().toLocaleString()}`, 105, 27, { align: 'center' });
                 
                 const charts = ['bin01Chart', 'bin02Chart'];
-                let yPosition = 40;
+                let yPosition = 35;
                 
                 for (const chartId of charts) {
                     const canvas = document.getElementById(chartId);
-                    const chartTitle = chartId.replace('Chart', '').replace('bin', 'Bin ');
+                    const chartTitle = chartId.replace('Chart', '').replace('bin', 'Lixeira ');
                     
                     doc.setFontSize(14);
                     doc.setTextColor(0, 0, 0);
-                    doc.text(`${chartTitle} - 15-Second Averages`, 20, yPosition);
+                    doc.text(chartTitle, 20, yPosition);
                     
                     const imageData = canvas.toDataURL('image/png', 1.0);
                     doc.addImage(imageData, 'PNG', 20, yPosition + 5, 170, 80);
@@ -654,7 +627,7 @@
                     }
                 }
                 
-                doc.save(`BinGo_15s_Averages_${new Date().toISOString().split('T')[0]}.pdf`);
+                doc.save(`BinGo_Histórico_${new Date().toISOString().split('T')[0]}.pdf`);
                 
             } catch (error) {
                 console.error("Falha na exportação:", error);
@@ -664,4 +637,3 @@
     </script>
 </body>
 </html>
-[file content end]

@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bin Status - BinGo</title>
     
-    <!-- SDK do Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
     
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -399,37 +396,6 @@
             text-align: right;
         }
         
-        /* Data sampling indicator */
-        .data-sampling {
-            font-size: 0.8rem;
-            color: var(--gray);
-            margin-top: 0.25rem;
-            font-style: italic;
-        }
-        
-        /* Data buffer info */
-        .buffer-info {
-            background-color: #f8f9fa;
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            font-size: 0.85rem;
-        }
-        
-        .buffer-values {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-            margin-top: 0.5rem;
-        }
-        
-        .buffer-value {
-            background-color: #e9ecef;
-            padding: 0.1rem 0.4rem;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-        
         /* Estilos responsivos para ecrãs pequenos */
         @media (max-width: 600px) {
             body {
@@ -476,14 +442,12 @@
 </head>
 <body>
     <div class="container">
-        <!-- Cartão com os detalhes da lixeira -->
         <div class="bin-card">
             <h1 class="bin-title">
                 <i class="fas fa-trash-alt"></i>
                 <span id="bin-title">Bin Details</span>
             </h1>
             
-            <!-- Linha com o ID da lixeira -->
             <div class="info-row">
                 <span class="info-label">
                     <i class="fas fa-id-card"></i>
@@ -492,7 +456,6 @@
                 <span class="info-value" id="bin-id">-</span>
             </div>
             
-            <!-- Linha com a localização -->
             <div class="info-row">
                 <span class="info-label">
                     <i class="fas fa-map-marker-alt"></i>
@@ -501,7 +464,6 @@
                 <span class="info-value" id="bin-location">-</span>
             </div>
             
-            <!-- Linha com o estado (nível de enchimento) -->
             <div class="info-row">
                 <span class="info-label">
                     <i class="fas fa-tachometer-alt"></i>
@@ -512,11 +474,9 @@
                     <div class="progress-container">
                         <div id="progress-bar" class="progress-bar"></div>
                     </div>
-                    <div id="data-sampling" class="data-sampling"></div>
                 </div>
             </div>
             
-            <!-- Linha com a última vez que foi esvaziada -->
             <div class="info-row">
                 <span class="info-label">
                     <i class="far fa-clock"></i>
@@ -524,15 +484,7 @@
                 </span>
                 <span class="info-value" id="bin-last-emptied">-</span>
             </div>
-            
-            <!-- Data buffer information -->
-            <div id="buffer-info" class="buffer-info" style="display: none;">
-                <div>Data Sampling: <span id="buffer-size">0</span> readings in last 15 seconds</div>
-                <div>Current Average: <span id="current-average">0</span>%</div>
-                <div id="buffer-values" class="buffer-values"></div>
-            </div>
 
-            <!-- SECÇÃO DE ALERTA DE LIXEIRA CHEIA -->
             <div id="full-alert" style="display: none;" class="full-alert">
                 <i class="fas fa-exclamation-triangle alert-icon"></i>
                 <div class="alert-content">
@@ -544,7 +496,6 @@
                 </div>
             </div>
 
-            <!-- SECÇÃO DE SUGESTÃO DE LIXEIRA ALTERNATIVA -->
             <div id="suggestion-box" style="display: none;" class="suggestion-box">
                 <i class="fas fa-lightbulb suggestion-icon"></i>
                 <div class="suggestion-content">
@@ -561,20 +512,16 @@
                 </div>
             </div>
             
-            <!-- Última atualização -->
             <p id="last-updated" class="last-updated">-</p>
         </div>
         
-        <!-- Link para voltar ao dashboard -->
         <a href="index.html" class="back-link">
             <i class="fas fa-arrow-left"></i>
             Back to Dashboard
         </a>
         
-        <!-- Spinner de carregamento -->
         <div id="loading" class="loading-spinner"></div>
         
-        <!-- Div para mostrar mensagens de erro -->
         <div id="error-display" class="error-message" style="display: none;"></div>
     </div>
 
@@ -603,100 +550,12 @@
         // Variáveis para controlar se veio de uma lixeira cheia e a localização original
         let cameFromFullBin = false;
         let originalBinLocation = '';
-        
-        // Data averaging variables
-        const dataBuffer = {
-            values: [],
-            timestamps: [],
-            currentAverage: 0,
-            last15sUpdate: null,
-            lastStoredAverage: null
-        };
-        
-        // Debug mode
-        const DEBUG_MODE = true;
 
-        /**
-         * Calculate average of values in buffer
-         */
-        function calculateAverage(values) {
-            if (values.length === 0) return 0;
-            const sum = values.reduce((a, b) => a + b, 0);
-            return Math.round((sum / values.length) * 10) / 10; // Round to 1 decimal
-        }
-
-        /**
-         * Process new data with 15-second averaging
-         * @param {number} realTimeValue - Real-time value from Firebase
-         */
-        function processDataWithAveraging(realTimeValue) {
-            const now = Date.now();
-            
-            // Add current value to buffer
-            dataBuffer.values.push(realTimeValue);
-            dataBuffer.timestamps.push(now);
-            
-            // Remove values older than 15 seconds
-            const cutoff = now - 15000;
-            const validIndices = dataBuffer.timestamps.map((ts, idx) => ts >= cutoff ? idx : -1).filter(idx => idx !== -1);
-            
-            dataBuffer.values = validIndices.map(idx => dataBuffer.values[idx]);
-            dataBuffer.timestamps = validIndices.map(idx => dataBuffer.timestamps[idx]);
-            
-            // Calculate current average
-            dataBuffer.currentAverage = calculateAverage(dataBuffer.values);
-            
-            // Check if 15 seconds have passed since last storage
-            if (!dataBuffer.last15sUpdate || (now - dataBuffer.last15sUpdate) >= 15000) {
-                dataBuffer.last15sUpdate = now;
-                
-                // Store average in localStorage for history page
-                let history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
-                history.push({
-                    timestamp: new Date().toISOString(),
-                    level: dataBuffer.currentAverage
-                });
-                
-                // Keep only last 1000 records
-                if (history.length > 1000) {
-                    history = history.slice(-1000);
-                }
-                
-                localStorage.setItem(`binHistory_${binId}`, JSON.stringify(history));
-                dataBuffer.lastStoredAverage = dataBuffer.currentAverage;
-                
-                if (DEBUG_MODE) {
-                    console.log(`[${binId}] 15s Average Stored: ${dataBuffer.currentAverage}% (from ${dataBuffer.values.length} samples)`);
-                }
-            }
-            
-            // Update buffer info display
-            if (DEBUG_MODE) {
-                document.getElementById('buffer-info').style.display = 'block';
-                document.getElementById('buffer-size').textContent = dataBuffer.values.length;
-                document.getElementById('current-average').textContent = dataBuffer.currentAverage;
-                
-                // Show buffer values
-                const bufferValuesEl = document.getElementById('buffer-values');
-                bufferValuesEl.innerHTML = '';
-                dataBuffer.values.forEach((val, idx) => {
-                    const span = document.createElement('span');
-                    span.className = 'buffer-value';
-                    span.textContent = val;
-                    span.title = `Reading ${idx + 1}: ${val}%`;
-                    bufferValuesEl.appendChild(span);
-                });
-            }
-            
-            // Update data sampling indicator
-            const samplingEl = document.getElementById('data-sampling');
-            if (dataBuffer.values.length > 0) {
-                const age = Math.round((now - dataBuffer.timestamps[0]) / 1000);
-                samplingEl.textContent = `${dataBuffer.values.length} readings (last ${age}s) → Average: ${dataBuffer.currentAverage}%`;
-            }
-            
-            return dataBuffer.currentAverage;
-        }
+        // *** START OF STABILITY VARIABLES ***
+        let readingsBuffer = [];
+        let lastKnownData = null;
+        let updateInterval = null;
+        // *** END OF STABILITY VARIABLES ***
 
         /**
          * Função para obter uma lixeira alternativa
@@ -775,10 +634,6 @@
                     const altBinData = altBinDoc.data();
                     const altTrashLevel = altBinData.trash_level || 0;
                     
-                    // Process alternative bin data with averaging
-                    // Note: In a real implementation, you'd maintain separate buffers for each bin
-                    const altAverage = altTrashLevel; // Simplified for this example
-                    
                     // Elementos da interface
                     const suggestionBox = document.getElementById('suggestion-box');
                     const suggestionText = document.getElementById('suggestion-text');
@@ -794,14 +649,14 @@
                     navigationLink.style.display = 'inline-flex';
                     
                     // Se a lixeira alternativa também estiver cheia
-                    if (altAverage > 90) {
+                    if (altTrashLevel > 90) {
                         suggestionBox.classList.add('alt-bin-full');
-                        suggestionText.textContent = `The nearest bin (${alternativeBin}) is also full (${altAverage}% capacity).`;
+                        suggestionText.textContent = `The nearest bin (${alternativeBin}) is also full (${altTrashLevel}% capacity).`;
                         suggestionLink.style.display = 'none';
                         navigationLink.style.display = 'none';
                     } else {
                         // Mostrar sugestão de lixeira alternativa
-                        suggestionText.textContent = `The nearest available bin is ${alternativeBin} (${altAverage}% full).`;
+                        suggestionText.textContent = `The nearest available bin is ${alternativeBin} (${altTrashLevel}% full).`;
                         suggestionLink.href = `bin.html?id=${alternativeBin}&fromFull=true&fromLocation=${encodeURIComponent(originalBinLocation)}`;
                         
                         // Gerar link de navegação para a lixeira alternativa
@@ -860,26 +715,23 @@
          * @param {object} binData - Dados da lixeira do Firebase
          */
         function updateUI(binData) {
-            const realTimeValue = binData.trash_level || 0;
-            
-            // Process data with 15-second averaging
-            const averageLevel = processDataWithAveraging(realTimeValue);
+            const trashLevel = binData.trash_level || 0;
             
             // Atualizar localização
             document.getElementById('bin-location').textContent = binData.location || 'Location not specified';
             
-            // Atualizar estado e nível (show average)
+            // Atualizar estado e nível
             const levelElement = document.getElementById('bin-status');
-            levelElement.textContent = `${averageLevel}% full`;
+            levelElement.textContent = `${trashLevel}% full`;
             levelElement.className = 'trash-level ' +
-                (averageLevel > 80 ? 'level-critical' :
-                 averageLevel > 50 ? 'level-warning' : 'level-normal');
+                (trashLevel > 80 ? 'level-critical' :
+                 trashLevel > 50 ? 'level-warning' : 'level-normal');
             
             // Atualizar barra de progresso
-            updateProgressBar(averageLevel);
+            updateProgressBar(trashLevel);
             
             // Mostrar alerta se a lixeira estiver cheia
-            if (averageLevel > 74) {
+            if (trashLevel > 74) {
                 document.getElementById('full-alert').style.display = 'flex';
                 const alternativeBin = getAlternativeBin(binId);
                 checkAlternativeBin(alternativeBin);
@@ -890,8 +742,8 @@
             
             // Atualizar outras informações
             document.getElementById('bin-last-emptied').textContent = formatDate(binData.last_emptied);
-            document.getElementById('bin-title').textContent = `Bin Status (${averageLevel}% full)`;
-            document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleTimeString()} | 15s Avg: ${averageLevel}%`;
+            document.getElementById('bin-title').textContent = `Bin Status (${trashLevel}% full)`;
+            document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
             document.getElementById('loading').style.display = 'none';
             
             // Mostrar botão de navegação pequeno se aplicável
@@ -923,6 +775,7 @@
                 }
 
                 // Atualizar interface e configurar listener em tempo real
+                // Primeira carga é imediata
                 updateUI(currentBinDoc.data());
                 setupRealtimeListener();
                 
@@ -943,11 +796,39 @@
                 unsubscribeListener();
             }
             
-            // Configurar novo listener
+            // Limpar buffer e intervalo anterior
+            readingsBuffer = [];
+            if (updateInterval) clearInterval(updateInterval);
+
+            // Configurar intervalo de atualização (15 segundos)
+            updateInterval = setInterval(() => {
+                if (readingsBuffer.length > 0 && lastKnownData) {
+                    // Calcular soma
+                    const sum = readingsBuffer.reduce((a, b) => a + b, 0);
+                    // Calcular média teto (Ceiling Average)
+                    const avg = Math.ceil(sum / readingsBuffer.length);
+                    
+                    // Atualizar objeto de dados e UI
+                    lastKnownData.trash_level = avg;
+                    updateUI(lastKnownData);
+                    
+                    // Limpar buffer para o próximo ciclo
+                    readingsBuffer = [];
+                    console.log(`Updated UI with average: ${avg}%`);
+                }
+            }, 15000); // 15 segundos
+            
+            // Configurar novo listener do Firebase
             unsubscribeListener = db.collection("trash_bins").doc(binId).onSnapshot(
                 (doc) => {
                     if (doc.exists) {
-                        updateUI(doc.data());
+                        const data = doc.data();
+                        lastKnownData = data;
+                        
+                        // Coletar valor para o buffer em vez de atualizar UI imediatamente
+                        const level = data.trash_level !== undefined ? data.trash_level : 0;
+                        readingsBuffer.push(level);
+                        console.log(`Buffered reading: ${level}`);
                     }
                 },
                 (error) => {
@@ -961,17 +842,15 @@
             if (unsubscribeListener) {
                 unsubscribeListener();
             }
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
         });
 
         // Evento quando o DOM estiver carregado - carregar dados
         document.addEventListener('DOMContentLoaded', function() {
             updateBinData();
             showSmallNavigationButton();
-            
-            // Initialize localStorage for history if needed
-            if (!localStorage.getItem(`binHistory_${binId}`)) {
-                localStorage.setItem(`binHistory_${binId}`, JSON.stringify([]));
-            }
         });
 
         // Evento para quando a página é restaurada do cache
@@ -983,4 +862,3 @@
     </script>
 </body>
 </html>
-[file content end]
