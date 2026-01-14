@@ -325,7 +325,8 @@
                 try {
                     const doc = await db.collection("trash_bins").doc(binId).get();
                     if (doc.exists) {
-                        const level = doc.data().trash_level || 0;
+                        // FIX: Explicitly cast to Number to avoid string concatenation
+                        const level = doc.data().trash_level !== undefined ? Number(doc.data().trash_level) : 0;
                         dataBuffers[binId].push(level);
                     }
                 } catch (error) {
@@ -345,8 +346,8 @@
                 const buffer = dataBuffers[binId];
                 
                 if (buffer.length > 0) {
-                    // Soma dos elementos
-                    const sum = buffer.reduce((a, b) => a + b, 0);
+                    // Soma dos elementos (ensuring they are numbers)
+                    const sum = buffer.reduce((a, b) => Number(a) + Number(b), 0);
                     // Média teto (Ceiling Average)
                     const avg = Math.ceil(sum / buffer.length);
                     

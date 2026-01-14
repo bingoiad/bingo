@@ -804,7 +804,8 @@
             updateInterval = setInterval(() => {
                 if (readingsBuffer.length > 0 && lastKnownData) {
                     // Calcular soma
-                    const sum = readingsBuffer.reduce((a, b) => a + b, 0);
+                    // FIX: Ensure 'a' and 'b' are numbers to avoid concatenation
+                    const sum = readingsBuffer.reduce((a, b) => Number(a) + Number(b), 0);
                     // Calcular média teto (Ceiling Average)
                     const avg = Math.ceil(sum / readingsBuffer.length);
                     
@@ -812,9 +813,11 @@
                     lastKnownData.trash_level = avg;
                     updateUI(lastKnownData);
                     
+                    // Log para debug
+                    console.log(`Updated UI. Buffer: [${readingsBuffer.join(', ')}]. Sum: ${sum}. Avg: ${avg}%`);
+                    
                     // Limpar buffer para o próximo ciclo
                     readingsBuffer = [];
-                    console.log(`Updated UI with average: ${avg}%`);
                 }
             }, 15000); // 15 segundos
             
@@ -826,9 +829,10 @@
                         lastKnownData = data;
                         
                         // Coletar valor para o buffer em vez de atualizar UI imediatamente
-                        const level = data.trash_level !== undefined ? data.trash_level : 0;
+                        // FIX: Explicitly cast to Number to prevent string concatenation
+                        const level = data.trash_level !== undefined ? Number(data.trash_level) : 0;
                         readingsBuffer.push(level);
-                        console.log(`Buffered reading: ${level}`);
+                        console.log(`Buffered reading: ${level} (Type: ${typeof level})`);
                     }
                 },
                 (error) => {
