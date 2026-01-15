@@ -16,17 +16,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Variáveis CSS para cores temáticas */
         :root {
-            --primary: #2e7d32;    /* Verde principal */
-            --secondary: #388e3c;  /* Verde secundário */
-            --accent: #7cb342;     /* Destaque em verde claro */
-            --light: #f1f8e9;      /* Fundo claro */
-            --text: #2e3a3d;       /* Cor do texto principal */
-            --chart-font: 'Nunito', sans-serif; /* Fonte específica para gráficos */
+            --primary: #2e7d32;
+            --secondary: #388e3c;
+            --accent: #7cb342;
+            --light: #f1f8e9;
+            --text: #2e3a3d;
+            --chart-font: 'Nunito', sans-serif;
         }
         
-        /* Estilos gerais do corpo da página */
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
@@ -35,13 +33,8 @@
             line-height: 1.6;
         }
         
-        /* Container principal que centraliza o conteúdo */
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1000px; margin: 0 auto; }
         
-        /* Estilo do título principal */
         h1 {
             color: var(--primary);
             display: flex;
@@ -50,7 +43,6 @@
             margin-bottom: 1.5rem;
         }
         
-        /* Cartão que contém cada gráfico */
         .graph-card {
             background: white;
             padding: 1.5rem;
@@ -58,14 +50,11 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             margin-bottom: 2rem;
             transition: transform 0.3s;
+            border-left: 4px solid var(--primary); /* All cards green */
         }
         
-        /* Efeito hover nos cartões */
-        .graph-card:hover {
-            transform: translateY(-3px);
-        }
+        .graph-card:hover { transform: translateY(-3px); }
         
-        /* Container dos controles (filtros e botões de exportação) */
         .controls {
             display: flex;
             flex-wrap: wrap;
@@ -74,13 +63,8 @@
             align-items: center;
         }
         
-        /* Seletor de intervalo de tempo */
-        .time-selector {
-            display: flex;
-            gap: 0.75rem;
-        }
+        .time-selector { display: flex; gap: 0.75rem; }
         
-        /* Botões do seletor de tempo */
         .time-btn {
             background: var(--light);
             border: none;
@@ -95,20 +79,10 @@
             transition: all 0.2s;
         }
         
-        /* Estilo do botão ativo */
-        .time-btn.active {
-            background: var(--primary);
-            color: white;
-        }
+        .time-btn.active { background: var(--primary); color: white; }
         
-        /* Container dos botões de exportação */
-        .export-options {
-            display: flex;
-            gap: 0.75rem;
-            margin-left: auto;
-        }
+        .export-options { display: flex; gap: 0.75rem; margin-left: auto; }
         
-        /* Botões de exportação */
         .export-btn {
             background: white;
             border: 2px solid var(--primary);
@@ -124,13 +98,8 @@
             transition: all 0.2s;
         }
         
-        /* Efeito hover nos botões de exportação */
-        .export-btn:hover {
-            background: var(--primary);
-            color: white;
-        }
+        .export-btn:hover { background: var(--primary); color: white; }
         
-        /* Link para voltar ao dashboard */
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -141,19 +110,10 @@
             font-weight: 500;
             transition: color 0.2s;
         }
+        .back-link:hover { color: var(--secondary); }
         
-        /* Efeito hover no link de voltar */
-        .back-link:hover {
-            color: var(--secondary);
-        }
+        canvas { width: 100% !important; height: 300px !important; }
         
-        /* Estilo dos canvases dos gráficos */
-        canvas {
-            width: 100% !important;
-            height: 300px !important;
-        }
-        
-        /* Tooltip personalizado */
         #custom-tooltip {
             position: absolute;
             background: white;
@@ -167,7 +127,6 @@
             z-index: 100;
         }
         
-        /* Botão para fechar o tooltip */
         #close-tooltip {
             pointer-events: auto;
             background: none;
@@ -178,26 +137,11 @@
             padding: 2px 5px;
         }
         
-        /* Media queries para responsividade */
         @media (max-width: 768px) {
-            body {
-                padding: 1.25rem;
-            }
-            
-            .controls {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .export-options {
-                margin-left: 0;
-                width: 100%;
-            }
-            
-            .export-btn {
-                flex: 1;
-                justify-content: center;
-            }
+            body { padding: 1.25rem; }
+            .controls { flex-direction: column; align-items: flex-start; }
+            .export-options { margin-left: 0; width: 100%; }
+            .export-btn { flex: 1; justify-content: center; }
         }
     </style>
 </head>
@@ -229,7 +173,8 @@
             </div>
         </div>
 
-        <div id="charts-container"></div>
+        <div id="charts-container">
+            </div>
     </div>
 
     <div id="custom-tooltip">
@@ -240,7 +185,6 @@
     </div>
 
     <script>
-        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD4SndxF5ZZcZHUj6m1TXghyNRh2uN7AkU",
             authDomain: "bingo-b9b42.firebaseapp.com",
@@ -250,19 +194,16 @@
             appId: "1:588496760146:web:1a3751363269ce12b5de8b"
         };
         
-        // Inicialização do Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Instâncias dos gráficos e buffers de dados
         let charts = {};
+        // Buffer logic for 15s averaging
         let dataBuffers = {};
 
-        // Inicialização quando a página carrega
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
             
-            // Event listeners para os botões de intervalo de tempo
             document.querySelectorAll('.time-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
@@ -271,35 +212,25 @@
                 });
             });
             
-            // Event listeners para os botões de exportação
             document.getElementById('exportExcel').addEventListener('click', exportToExcel);
             document.getElementById('exportPDF').addEventListener('click', exportToPDF);
             
-            // Event listener para o botão de fechar o tooltip
             document.getElementById('close-tooltip').addEventListener('click', (e) => {
                 e.stopPropagation();
                 document.getElementById('custom-tooltip').style.display = 'none';
             });
         });
 
-        /**
-         * Inicializa os dados e configura a coleta e processamento
-         */
         async function initializeData() {
-            // Carregar informações das lixeiras
             await loadBinInfo();
             
-            // Inicializa a coleta e processamento
-            setInterval(collectData, 1000); // Coleta a cada 1 segundo
-            setInterval(processBuffers, 15000); // Processa a cada 15 segundos
+            // Init buffering loop
+            setInterval(collectData, 1000); // Collect every 1 second
+            setInterval(processBuffers, 15000); // Process every 15 seconds
             
-            // Carregamento inicial dos dados no gráfico
             await loadData(24);
         }
 
-        /**
-         * Carrega informações das lixeiras dinamicamente do Firebase
-         */
         async function loadBinInfo() {
             try {
                 const snapshot = await db.collection("trash_bins").get();
@@ -308,27 +239,27 @@
                 snapshot.forEach(doc => {
                     const binId = doc.id;
                     
-                    // Inicializar buffer para esta lixeira
-                    dataBuffers[binId] = [];
+                    // Initialize buffer for this bin
+                    if (!dataBuffers[binId]) {
+                        dataBuffers[binId] = [];
+                    }
                     
-                    // Inicializar histórico no localStorage se não existir
+                    // Initialize history in localStorage if not exists
                     if (!localStorage.getItem(`binHistory_${binId}`)) {
                         localStorage.setItem(`binHistory_${binId}`, JSON.stringify([]));
                     }
                 });
-                
             } catch (error) {
-                console.error("Erro ao carregar informações das lixeiras:", error);
+                console.error("Error loading bin info:", error);
             }
         }
 
-        /**
-         * Coleta dados de todas as lixeiras (executado a cada 1s)
-         */
         async function collectData() {
+            // Collects data for ALL bins every 1s
             const binIds = Object.keys(dataBuffers);
             
-            for (const binId of binIds) {
+            // Use Promise.all to fetch all bins in parallel
+            await Promise.all(binIds.map(async (binId) => {
                 try {
                     const doc = await db.collection("trash_bins").doc(binId).get();
                     if (doc.exists) {
@@ -336,118 +267,93 @@
                         dataBuffers[binId].push(level);
                     }
                 } catch (error) {
-                    console.error(`Erro ao coletar dados para ${binId}:`, error);
+                    console.error(`Error collecting ${binId}:`, error);
                 }
-            }
+            }));
         }
 
-        /**
-         * Processa os buffers e atualiza o histórico (executado a cada 15s)
-         */
         async function processBuffers() {
             const now = new Date();
-            const binIds = Object.keys(dataBuffers);
             
+            const binIds = Object.keys(dataBuffers);
             for (const binId of binIds) {
                 const buffer = dataBuffers[binId];
                 
                 if (buffer && buffer.length > 0) {
-                    // Calcular Média Teto (Ceiling Average)
                     const sum = buffer.reduce((a, b) => Number(a) + Number(b), 0);
                     const avg = Math.ceil(sum / buffer.length);
                     
-                    // Obter histórico existente
                     let history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
                     
-                    // ** Lógica de atualização contínua **
-                    // Salva SEMPRE a cada 15s, mesmo que o valor não tenha mudado
+                    // ALWAYS SAVE DATA to ensure graph updates every 15 seconds
                     history.push({
                         timestamp: now.toISOString(),
                         level: avg
                     });
                     
-                    // Limitar a 1000 registros (Rolling Window)
-                    if (history.length > 1000) {
-                        history = history.slice(-1000);
-                    }
+                    // Keep last 1000 records
+                    if (history.length > 1000) history = history.slice(-1000);
                     
-                    // Guardar no localStorage
                     localStorage.setItem(`binHistory_${binId}`, JSON.stringify(history));
                     
-                    // Atualizar o gráfico específico imediatamente
+                    // Update specific chart immediately
                     await updateSingleChart(binId, getSelectedTimeRange());
                     
-                    // Limpar buffer para o próximo ciclo
+                    // Clear buffer
                     dataBuffers[binId] = [];
                 }
             }
         }
 
-        /**
-         * Obtém o intervalo de tempo selecionado
-         */
         function getSelectedTimeRange() {
             const activeBtn = document.querySelector('.time-btn.active');
             return activeBtn ? parseInt(activeBtn.dataset.hours) : 24;
         }
 
-        /**
-         * Carrega os dados principais e gera os gráficos dinamicamente
-         */
         async function loadData(hours) {
             try {
                 const chartsContainer = document.getElementById('charts-container');
                 chartsContainer.innerHTML = '';
                 
-                // Ordenar lixeiras alfabeticamente
+                // Sort bins alphabetically
                 const binIds = Object.keys(dataBuffers).sort();
                 
                 for (const binId of binIds) {
                     const binData = getHistoricalData(binId, hours);
                     const canvasId = `${binId}Chart`;
                     
-                    // Criar container do gráfico
                     const graphCard = document.createElement('div');
                     graphCard.className = 'graph-card';
                     graphCard.innerHTML = `
-                        <h2><i class="fas fa-trash-alt" style="color: #2e7d32;"></i> ${binId}</h2>
+                        <h2>
+                            <i class="fas fa-trash-alt" style="color: #2e7d32;"></i>
+                            ${binId}
+                        </h2>
                         <canvas id="${canvasId}"></canvas>
                     `;
                     
                     chartsContainer.appendChild(graphCard);
-                    
-                    // Renderizar gráfico
                     renderChart(canvasId, binId, binData, '#2e7d32');
                 }
-                
             } catch (error) {
-                console.error("Erro ao carregar histórico:", error);
+                console.error("Error loading history:", error);
             }
         }
 
-        /**
-         * Atualiza apenas um gráfico específico (para performance)
-         */
         async function updateSingleChart(binId, hours) {
             try {
                 const binData = getHistoricalData(binId, hours);
                 const canvasId = `${binId}Chart`;
-                
                 if (charts[canvasId]) {
                     renderChart(canvasId, binId, binData, '#2e7d32');
                 }
             } catch (error) {
-                console.error(`Erro ao atualizar gráfico ${binId}:`, error);
+                console.error(`Error updating chart ${binId}:`, error);
             }
         }
 
-        /**
-         * Obtém dados históricos do localStorage
-         */
         function getHistoricalData(binId, hours) {
             const history = JSON.parse(localStorage.getItem(`binHistory_${binId}`)) || [];
-            
-            // Calcula o tempo de corte
             const cutoff = new Date(Date.now() - (hours * 60 * 60 * 1000));
             
             return history
@@ -455,36 +361,28 @@
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
 
-        /**
-         * Renderiza os gráficos com tooltips melhorados
-         */
-        function renderChart(canvasId, label, data, color) {
+        function renderChart(canvasId, binId, data, color) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             
-            // Destrói o gráfico anterior se existir
-            if (charts[canvasId]) {
-                charts[canvasId].destroy();
-            }
+            if (charts[canvasId]) charts[canvasId].destroy();
             
-            // Formata as etiquetas
             const labels = data.map(item => {
                 const date = new Date(item.timestamp);
                 return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) +
                        '\n' + date.toLocaleDateString([], {month: 'short', day: 'numeric'});
             });
             
-            // Cria nova instância
             charts[canvasId] = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: label,
+                        label: binId,
                         data: data.map(item => item.level),
                         borderColor: color,
                         backgroundColor: `${color}20`,
                         fill: true,
-                        tension: 0.3,
+                        tension: 0.1,
                         pointRadius: 3,
                         pointHoverRadius: 5,
                         borderWidth: 2
@@ -493,14 +391,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: false, // Disable animation for smoother frequent updates
                     plugins: {
                         legend: {
                             labels: {
-                                font: {
-                                    family: 'Nunito',
-                                    size: 14,
-                                    weight: 'bold'
-                                },
+                                font: { family: 'Nunito', size: 14, weight: 'bold' },
                                 padding: 20
                             }
                         },
@@ -517,7 +412,7 @@
                                     return `Fill Level: ${context.parsed.y}%`;
                                 },
                                 footer: (context) => {
-                                    return `Bin: ${label}`;
+                                    return `Bin: ${binId}`;
                                 }
                             },
                             backgroundColor: 'rgba(46, 125, 50, 0.9)',
@@ -535,34 +430,14 @@
                             title: {
                                 display: true,
                                 text: 'Fill Level (%)',
-                                font: {
-                                    family: 'Nunito',
-                                    size: 14,
-                                    weight: 'bold'
-                                }
-                            },
-                            ticks: {
-                                font: {
-                                    family: 'Nunito',
-                                    size: 12
-                                }
+                                font: { family: 'Nunito', size: 14, weight: 'bold' }
                             }
                         },
                         x: {
                             title: {
                                 display: true,
                                 text: 'Time',
-                                font: {
-                                    family: 'Nunito',
-                                    size: 14,
-                                    weight: 'bold'
-                                }
-                            },
-                            ticks: {
-                                font: {
-                                    family: 'Nunito',
-                                    size: 12
-                                }
+                                font: { family: 'Nunito', size: 14, weight: 'bold' }
                             }
                         }
                     },
@@ -590,16 +465,13 @@
             });
         }
 
-        /**
-         * Exporta os dados para Excel
-         */
         async function exportToExcel() {
             try {
                 const binIds = Object.keys(dataBuffers).sort();
                 const excelData = [];
                 
                 for (const binId of binIds) {
-                    const binData = getHistoricalData(binId, 168);
+                    const binData = getHistoricalData(binId, 168); // 7 days
                     
                     binData.forEach(item => {
                         excelData.push({
@@ -626,16 +498,10 @@
             }
         }
 
-        /**
-         * Exporta os dados para PDF
-         */
         async function exportToPDF() {
             try {
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm'
-                });
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm' });
                 
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(18);
@@ -662,7 +528,7 @@
                     } else {
                         doc.setFontSize(12);
                         doc.setTextColor(100, 100, 100);
-                        doc.text("No data available", 20, yPosition + 10);
+                        doc.text("No data available for this bin", 20, yPosition + 10);
                     }
                     
                     yPosition += 90;
